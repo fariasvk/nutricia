@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR" class="dark">
 <head>
@@ -27,19 +26,15 @@
         extend: {
           colors: {
             brand: {
-              50: '#effaf2',
-              100: '#d9f2df',
-              500: '#22a06b',
-              600: '#18865e',
-              700: '#126b4b',
-              800: '#14543e',
-              900: '#103e30'
+              50: '#effaf2', 100: '#d9f2df', 500: '#22a06b',
+              600: '#18865e', 700: '#126b4b', 800: '#14543e', 900: '#103e30'
             }
           }
         }
       }
     };
   </script>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
@@ -220,26 +215,39 @@
       border-radius: 13px 13px 0 0;
     }
 
-    /* Mostra apenas o símbolo da imagem original do logo. */
+    /* Símbolo vetorial da marca, sem imagem de fundo branca. */
     .brand-mark {
-      position: relative;
-      flex: 0 0 40px;
-      width: 40px;
-      height: 40px;
+      flex: 0 0 42px;
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
       overflow: hidden;
-      border-radius: 11px;
-      background: #fff;
+      background: transparent;
       box-shadow: 0 5px 14px rgba(22, 111, 82, .16);
     }
 
-    .brand-mark img {
-      position: absolute;
+    .brand-logo {
       display: block;
-      width: 79.5px;
-      height: 79.5px;
-      max-width: none;
-      left: -20.5px;
-      top: -14.2px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .ui-icon {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vertical-align: middle;
+    }
+
+    #theme-toggle .ui-icon {
+      width: 17px;
+      height: 17px;
     }
 
     #theme-toggle {
@@ -268,6 +276,11 @@
       #theme-toggle {
         padding: 8px 10px;
       }
+
+      .brand-mark {
+        width: 40px;
+        height: 40px;
+      }
     }
   </style>
 </head>
@@ -278,8 +291,22 @@
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
 
       <div class="flex items-center gap-3">
-        <div class="brand-mark" aria-hidden="true">
-          <img src="./nutricia-logo.png" alt="">
+        <div class="brand-mark" aria-label="Símbolo NutricIA" role="img">
+          <svg class="brand-logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="nutriciaBrand" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#168cff"/>
+                <stop offset="1" stop-color="#08b879"/>
+              </linearGradient>
+            </defs>
+            <rect width="48" height="48" rx="13" fill="url(#nutriciaBrand)"/>
+            <path d="M13 17c3-8 12-11 19-6-3 5-8 7-13 5-2 0-4 0-6 1Z" fill="#facc15"/>
+            <path d="M24 10c-2 5-1 9 4 13" stroke="#facc15" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+            <path d="M7 19h5l4 13h17l3-10H15" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="20" cy="36" r="2.8" fill="#ffffff"/>
+            <circle cx="32" cy="36" r="2.8" fill="#ffffff"/>
+            <path d="M24.5 24v6m-3-3h6" stroke="#10b981" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          </svg>
         </div>
 
         <div>
@@ -296,29 +323,21 @@
       </div>
 
       <div class="flex flex-wrap items-center justify-center gap-3">
-
         <div class="flex flex-wrap items-center justify-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-xs">
           <span class="text-[10px] uppercase tracking-wider font-bold text-slate-500 px-2">Perfis:</span>
-
-          <button data-profile="geral" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white">
-            Geral
-          </button>
-          <button data-profile="hipertensao" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
-            Hipertensão
-          </button>
-          <button data-profile="diabetes" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
-            Diabetes
-          </button>
-          <button data-profile="intestinal" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
-            Saúde Intestinal
-          </button>
-          <button data-profile="atleta" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
-            Atleta
-          </button>
+          <button data-profile="geral" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white">Geral</button>
+          <button data-profile="hipertensao" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">Hipertensão</button>
+          <button data-profile="diabetes" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">Diabetes</button>
+          <button data-profile="intestinal" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">Saúde Intestinal</button>
+          <button data-profile="atleta" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">Atleta</button>
         </div>
 
         <button id="theme-toggle" type="button" aria-label="Alternar tema">
-          ☀️ Modo claro
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>
+          </svg>
+          <span>Modo claro</span>
         </button>
       </div>
     </div>
@@ -326,19 +345,28 @@
     <nav class="bg-slate-900/80 backdrop-blur border-t border-slate-800/80">
       <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto no-scrollbar">
         <button data-target="comparador" class="tab-btn active px-4 py-3 text-sm font-semibold border-b-2 border-emerald-500 text-emerald-400 bg-slate-800/50 whitespace-nowrap transition-colors flex items-center gap-2">
-          <span>📊</span> Comparador IAC
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19H21"/><rect x="7" y="11" width="3" height="6" rx=".5"/><rect x="13" y="7" width="3" height="10" rx=".5"/><rect x="19" y="4" width="2" height="13" rx=".5"/></svg>
+          Comparador IAC
         </button>
+
         <button data-target="scanner" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition-colors flex items-center gap-2">
-          <span>📷</span> Scanner IA
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14"/></svg>
+          Scanner IA
         </button>
+
         <button data-target="passos" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition-colors flex items-center gap-2">
-          <span>⚙️</span> Lab de Passos
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h5m4 0h7M4 12h9m4 0h3M4 18h2m4 0h10"/><circle cx="11" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>
+          Lab de Passos
         </button>
+
         <button data-target="banco" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition-colors flex items-center gap-2">
-          <span>🧺</span> Banco
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18l-2 10H5L3 10Z M8 10l4-6 4 6M8 13v4m4-4v4m4-4v4"/></svg>
+          Banco
         </button>
+
         <button data-target="relatorio" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition-colors flex items-center gap-2">
-          <span>🔬</span> Relatório Científico
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7Z M14 3v5h5M10 12h5M10 16h5"/></svg>
+          Relatório Científico
         </button>
       </div>
     </nav>
@@ -349,9 +377,7 @@
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
         <span id="profile-badge" class="font-bold text-emerald-400">Perfil Geral</span>
-        <span id="profile-details" class="text-slate-400 hidden sm:inline">
-          — Análise ampla de macro e micronutrientes sem foco restritivo individual.
-        </span>
+        <span id="profile-details" class="text-slate-400 hidden sm:inline">— Análise ampla de macro e micronutrientes sem foco restritivo individual.</span>
       </div>
       <span class="text-slate-500 text-[10px]">Informação educativa</span>
     </div>
@@ -359,15 +385,13 @@
 
   <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
-    <!-- ABA 1: COMPARADOR -->
     <section id="tab-comparador" class="tab-content space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
         <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          <span>🥑</span> Comparador de Alimentos e Índice IAC
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5C10 3.5 4 8.5 4 14a6.5 6.5 0 0 0 6.5 6.5c5.5 0 10-6.5 10-17Z M6 18 17 7"/></svg>
+          Comparador de Alimentos e Índice IAC
         </h2>
-        <p class="text-xs text-slate-400 mb-6">
-          Compare informações nutricionais por 100 g. A pontuação IAC é uma simulação acadêmica, não um índice clínico validado.
-        </p>
+        <p class="text-xs text-slate-400 mb-6">Selecione dois produtos do banco para comparar os dados nutricionais por 100 g. A pontuação IAC é uma simulação acadêmica, não um índice clínico validado.</p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
@@ -385,39 +409,29 @@
         </div>
 
         <div id="comparison-results">
-          <p class="text-xs text-slate-500 text-center py-8">
-            Selecione pelo menos um produto acima para visualizar a comparação nutricional.
-          </p>
+          <p class="text-xs text-slate-500 text-center py-8">Selecione pelo menos um produto acima para visualizar a comparação nutricional.</p>
         </div>
       </div>
     </section>
 
-    <!-- ABA 2: SCANNER -->
     <section id="tab-scanner" class="tab-content hidden space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
         <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          <span>📷</span> Scanner de Código de Barras
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14"/></svg>
+          Scanner de Código de Barras
         </h2>
-        <p class="text-xs text-slate-400 mb-6">
-          Consulte os dados disponíveis na base colaborativa Open Food Facts usando a câmera ou digitando o código de barras.
-        </p>
+        <p class="text-xs text-slate-400 mb-6">Aponte a câmera para o código de barras de um alimento para consultar os dados disponíveis na base colaborativa Open Food Facts.</p>
 
         <div class="max-w-md mx-auto bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-6">
-          <div id="reader" class="overflow-hidden rounded-xl bg-slate-900 min-h-[200px] flex items-center justify-center text-xs text-slate-500">
-            Aguardando inicialização da câmera...
-          </div>
-          <div id="scanner-feedback" class="mt-3 text-center text-xs">
-            <span class="text-slate-400">A câmera será solicitada ao abrir esta aba.</span>
-          </div>
+          <div id="reader" class="overflow-hidden rounded-xl bg-slate-900 min-h-[200px] flex items-center justify-center text-xs text-slate-500">Aguardando inicialização da câmera...</div>
+          <div id="scanner-feedback" class="mt-3 text-center text-xs"><span class="text-slate-400">A câmera será solicitada ao abrir esta aba.</span></div>
         </div>
 
         <div class="max-w-md mx-auto pt-4 border-t border-slate-800">
           <h3 class="text-xs font-semibold text-slate-300 mb-2">Busca manual por código EAN</h3>
           <div class="flex gap-2">
-            <input type="text" id="manual-barcode" inputmode="numeric" placeholder="Digite o código de barras" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs">
-            <button id="btn-manual-search" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-4 py-2 rounded-xl">
-              Buscar
-            </button>
+            <input type="text" id="manual-barcode" inputmode="numeric" placeholder="Digite o número do código de barras" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs">
+            <button id="btn-manual-search" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-4 py-2 rounded-xl">Buscar</button>
           </div>
         </div>
 
@@ -425,57 +439,45 @@
       </div>
     </section>
 
-    <!-- ABA 3: LABORATÓRIO -->
     <section id="tab-passos" class="tab-content hidden space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
         <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          <span>🎛️</span> Laboratório de Pesos
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h5m4 0h7M4 12h9m4 0h3M4 18h2m4 0h10"/><circle cx="11" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>
+          Laboratório de Pesos
         </h2>
-        <p class="text-xs text-slate-400 mb-6">
-          Ajuste os coeficientes da fórmula simulada para observar como eles afetam a pontuação acadêmica.
-        </p>
+        <p class="text-xs text-slate-400 mb-6">Ajuste os coeficientes da fórmula simulada para observar como eles afetam a pontuação acadêmica.</p>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-            <label class="block text-xs font-semibold text-slate-300" for="weight-sodium">
-              Penalidade de sódio <span class="text-emerald-400">2.0x</span>
-            </label>
+            <label class="block text-xs font-semibold text-slate-300" for="weight-sodium">Penalidade de sódio <span class="text-emerald-400">2.0x</span></label>
             <input type="range" id="weight-sodium" min="0" max="5" step="0.5" value="2.0" class="w-full accent-emerald-500">
             <p class="text-[10px] text-slate-500">Aumenta o desconto proporcional ao teor de sódio.</p>
           </div>
-
           <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-            <label class="block text-xs font-semibold text-slate-300" for="weight-sugar">
-              Penalidade de açúcar <span class="text-emerald-400">1.5x</span>
-            </label>
+            <label class="block text-xs font-semibold text-slate-300" for="weight-sugar">Penalidade de açúcar <span class="text-emerald-400">1.5x</span></label>
             <input type="range" id="weight-sugar" min="0" max="5" step="0.5" value="1.5" class="w-full accent-emerald-500">
             <p class="text-[10px] text-slate-500">Aumenta o desconto por gramas de açúcares.</p>
           </div>
-
           <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-            <label class="block text-xs font-semibold text-slate-300" for="weight-fiber">
-              Bônus de fibras <span class="text-emerald-400">2.0x</span>
-            </label>
+            <label class="block text-xs font-semibold text-slate-300" for="weight-fiber">Bônus de fibras <span class="text-emerald-400">2.0x</span></label>
             <input type="range" id="weight-fiber" min="0" max="5" step="0.5" value="2.0" class="w-full accent-emerald-500">
             <p class="text-[10px] text-slate-500">Acrescenta pontos conforme a quantidade de fibras.</p>
           </div>
         </div>
 
-        <div id="lab-feedback" class="p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-xl text-xs text-emerald-300">
-          Ajuste os controles para recalcular o IAC no comparador.
-        </div>
+        <div id="lab-feedback" class="p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-xl text-xs text-emerald-300">Ajuste os controles para recalcular o IAC no comparador.</div>
       </div>
     </section>
 
-    <!-- ABA 4: BANCO -->
     <section id="tab-banco" class="tab-content hidden space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
-              <span>🧺</span> Banco de Alimentos
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18l-2 10H5L3 10Z M8 10l4-6 4 6M8 13v4m4-4v4m4-4v4"/></svg>
+              Banco de Alimentos
             </h2>
-            <p class="text-xs text-slate-400">Produtos guardados neste navegador e dados encontrados na API.</p>
+            <p class="text-xs text-slate-400">Produtos armazenados neste navegador e produtos encontrados na API.</p>
           </div>
           <input type="text" id="search-db" oninput="renderProductsTable()" placeholder="Filtrar por nome, marca ou EAN..." class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs w-full sm:w-64">
         </div>
@@ -498,7 +500,6 @@
 
         <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
           <h3 class="text-xs font-bold text-slate-200 mb-3">Cadastrar alimento manualmente</h3>
-
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
             <input type="text" id="new-name" placeholder="Nome do produto *" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
             <input type="text" id="new-brand" placeholder="Marca" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
@@ -515,38 +516,30 @@
             <input type="number" id="new-sodium" placeholder="Sódio (mg)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
           </div>
 
-          <button id="btn-save-manual" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-4 py-2 rounded-lg">
-            Salvar no Banco Local
-          </button>
+          <button id="btn-save-manual" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-4 py-2 rounded-lg">Salvar no Banco Local</button>
         </div>
       </div>
     </section>
 
-    <!-- ABA 5: RELATÓRIO -->
     <section id="tab-relatorio" class="tab-content hidden space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
         <div>
           <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
-            <span>🔬</span> Relatório Científico
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7Z M14 3v5h5M10 12h5M10 16h5"/></svg>
+            Relatório Científico
           </h2>
-          <p class="text-xs text-slate-400">
-            Fundamentação e limitações do projeto NutricIA para a Feira de Ciências.
-          </p>
+          <p class="text-xs text-slate-400">Fundamentação e limites do projeto NutricIA para a Feira de Ciências.</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
             <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Objetivo do projeto</h3>
-            <p class="text-xs text-slate-300 leading-relaxed">
-              O NutricIA busca incentivar a leitura crítica de rótulos por meio da comparação transparente das informações nutricionais de alimentos industrializados.
-            </p>
+            <p class="text-xs text-slate-300 leading-relaxed">O NutricIA busca incentivar a leitura crítica de rótulos por meio de uma comparação transparente das informações nutricionais de alimentos industrializados.</p>
           </div>
 
           <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
             <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Fontes e metodologia</h3>
-            <p class="text-xs text-slate-300 leading-relaxed">
-              O aplicativo consulta a base colaborativa Open Food Facts. A TBCA e as normas da Anvisa são referências conceituais para discutir composição e rotulagem nutricional.
-            </p>
+            <p class="text-xs text-slate-300 leading-relaxed">O aplicativo consulta a base colaborativa Open Food Facts. A TBCA e as normas da Anvisa são referências conceituais para discutir composição e rotulagem nutricional.</p>
           </div>
         </div>
 
@@ -554,12 +547,13 @@
           <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Limitações importantes</h3>
           <ul class="list-disc list-inside text-xs text-slate-300 space-y-1 leading-relaxed">
             <li>Os dados da Open Food Facts são colaborativos e podem estar incompletos ou incorretos; confira o rótulo real.</li>
-            <li>A pontuação IAC é uma simulação acadêmica, não um índice oficial, diagnóstico ou recomendação clínica.</li>
+            <li>A pontuação IAC é uma simulação acadêmica e não é um índice oficial, diagnóstico ou recomendação clínica.</li>
             <li>O banco local fica no navegador em que os produtos foram cadastrados e não é compartilhado automaticamente entre visitantes.</li>
           </ul>
         </div>
       </div>
     </section>
+
   </main>
 
   <footer class="bg-slate-900 border-t border-slate-800 py-4 px-4 text-center text-xs text-slate-500">
@@ -574,11 +568,10 @@
 
       const updateButton = () => {
         const dark = root.classList.contains('dark');
-        button.textContent = dark ? '☀️ Modo claro' : '🌙 Modo escuro';
-        button.setAttribute(
-          'aria-label',
-          dark ? 'Ativar modo claro' : 'Ativar modo escuro'
-        );
+        button.innerHTML = dark
+          ? '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><span>Modo claro</span>'
+          : '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.9 13A8.5 8.5 0 0 1 11 3.1 8.5 8.5 0 1 0 20.9 13Z"/></svg><span>Modo escuro</span>';
+        button.setAttribute('aria-label', dark ? 'Ativar modo claro' : 'Ativar modo escuro');
       };
 
       updateButton();
