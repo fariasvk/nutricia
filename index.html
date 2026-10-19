@@ -1,12 +1,24 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NutricIA - Análise Nutricional Acadêmica</title>
+  <meta name="theme-color" content="#18865e">
+  <meta name="description" content="NutricIA: aplicativo educativo para comparar informações nutricionais de alimentos.">
+  <title>NutricIA — Comparador Nutricional</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#059669">
-  <!-- Tailwind CSS via CDN -->
+
+  <script>
+    try {
+      if (localStorage.getItem('nutricia-theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+    } catch (error) {}
+  </script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -15,53 +27,302 @@
         extend: {
           colors: {
             brand: {
-              50: '#ecfdf5',
-              100: '#d1fae5',
-              500: '#10b981',
-              600: '#059669',
-              700: '#047857',
-              800: '#065f46',
-              900: '#064e3b',
+              50: '#effaf2',
+              100: '#d9f2df',
+              500: '#22a06b',
+              600: '#18865e',
+              700: '#126b4b',
+              800: '#14543e',
+              900: '#103e30'
             }
           }
         }
       }
-    }
+    };
   </script>
-  <!-- Chart.js para gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Html5Qrcode para leitura real de código de barras pela câmera -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f8f6ed;
+      --surface: #fffdf7;
+      --surface-2: #edf4e5;
+      --ink: #294237;
+      --muted: #64786c;
+      --border: #d7e3d2;
+      --accent: #18865e;
+      --shadow: 0 12px 30px rgba(57, 100, 65, .10);
+    }
+
+    html.dark {
+      color-scheme: dark;
+      --page: #101d24;
+      --surface: #172b32;
+      --surface-2: #203a3a;
+      --ink: #f2f6e9;
+      --muted: #b1c6b9;
+      --border: #345048;
+      --accent: #60d6a1;
+      --shadow: 0 12px 30px rgba(0, 0, 0, .20);
+    }
+
+    body.bg-slate-950 {
+      background-color: var(--page) !important;
+      color: var(--ink) !important;
+      background-image:
+        radial-gradient(circle at 8% 5%, rgba(255, 196, 105, .19), transparent 25%),
+        radial-gradient(circle at 95% 18%, rgba(102, 201, 155, .16), transparent 27%),
+        radial-gradient(circle at 50% 100%, rgba(212, 173, 225, .13), transparent 30%) !important;
+      background-attachment: fixed;
+      transition: background-color .25s, color .25s;
+    }
+
+    [class~="bg-slate-950"] {
+      background-color: var(--surface-2) !important;
+    }
+
+    body.bg-slate-950 {
+      background-color: var(--page) !important;
+    }
+
+    [class~="bg-slate-900"],
+    [class~="bg-slate-900/50"],
+    [class~="bg-slate-900/80"] {
+      background-color: var(--surface) !important;
+    }
+
+    [class~="bg-slate-800"],
+    [class~="bg-slate-800/50"] {
+      background-color: var(--surface-2) !important;
+    }
+
+    [class~="text-white"],
+    [class~="text-slate-100"],
+    [class~="text-slate-200"],
+    [class~="text-slate-300"] {
+      color: var(--ink) !important;
+    }
+
+    [class~="text-slate-400"],
+    [class~="text-slate-500"] {
+      color: var(--muted) !important;
+    }
+
+    [class~="border-slate-800"],
+    [class~="border-slate-700"],
+    [class~="border-slate-800/50"],
+    [class~="border-slate-800/80"] {
+      border-color: var(--border) !important;
+    }
+
+    [class~="text-emerald-400"] {
+      color: var(--accent) !important;
+    }
+
+    [class~="bg-emerald-600"] {
+      background-color: #18865e !important;
+    }
+
+    button.bg-emerald-600.text-white,
+    .bg-emerald-600.text-white {
+      color: #fff !important;
+    }
+
+    html.dark [class~="bg-emerald-600"] {
+      background-color: #168b68 !important;
+    }
+
+    html:not(.dark) [class~="bg-emerald-500/10"] {
+      background-color: #e0f4e5 !important;
+    }
+
+    html:not(.dark) [class~="bg-emerald-950/40"] {
+      background-color: #e4f4e5 !important;
+    }
+
+    html.dark [class~="bg-emerald-950/40"] {
+      background-color: #183c32 !important;
+    }
+
+    html:not(.dark) [class~="bg-amber-900/40"],
+    html:not(.dark) [class~="bg-amber-900/50"],
+    html:not(.dark) [class~="bg-amber-900/80"] {
+      background-color: #fff0ca !important;
+    }
+
+    html:not(.dark) [class~="text-amber-300"],
+    html:not(.dark) [class~="text-amber-400"],
+    html:not(.dark) [class~="text-amber-200"] {
+      color: #895309 !important;
+    }
+
+    html:not(.dark) [class~="bg-red-900/50"] {
+      background-color: #ffebe7 !important;
+    }
+
+    html:not(.dark) [class~="text-red-200"] {
+      color: #922f39 !important;
+    }
+
+    html:not(.dark) [class~="bg-emerald-900/80"] {
+      background-color: #d9f3df !important;
+    }
+
+    html:not(.dark) [class~="text-emerald-300"] {
+      color: #176e4b !important;
+    }
+
+    html.dark [class~="text-emerald-300"] {
+      color: #9ae6c2 !important;
+    }
+
+    input,
+    select {
+      background-color: var(--surface) !important;
+      color: var(--ink) !important;
+      border-color: var(--border) !important;
+      border-radius: 12px !important;
+    }
+
+    input::placeholder {
+      color: var(--muted) !important;
+      opacity: .9;
+    }
+
+    header.bg-slate-900,
+    header nav {
+      background: linear-gradient(110deg, var(--surface), var(--surface-2)) !important;
+      border-color: var(--border) !important;
+    }
+
+    footer.bg-slate-900 {
+      background-color: var(--surface) !important;
+      border-color: var(--border) !important;
+    }
+
+    main section > div {
+      box-shadow: var(--shadow);
+      border-color: var(--border) !important;
+      border-radius: 22px;
+    }
+
+    button {
+      transition: background-color .2s, transform .2s, box-shadow .2s;
+    }
+
+    button:hover {
+      filter: saturate(1.12);
+    }
+
+    button.tab-btn {
+      border-radius: 13px 13px 0 0;
+    }
+
+    /* Mostra apenas o símbolo da imagem original do logo. */
+    .brand-mark {
+      position: relative;
+      flex: 0 0 40px;
+      width: 40px;
+      height: 40px;
+      overflow: hidden;
+      border-radius: 11px;
+      background: #fff;
+      box-shadow: 0 5px 14px rgba(22, 111, 82, .16);
+    }
+
+    .brand-mark img {
+      position: absolute;
+      display: block;
+      width: 79.5px;
+      height: 79.5px;
+      max-width: none;
+      left: -20.5px;
+      top: -14.2px;
+    }
+
+    #theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      align-self: center;
+    }
+
+    #theme-toggle:hover {
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+      #theme-toggle {
+        padding: 8px 10px;
+      }
+    }
+  </style>
 </head>
+
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
 
-  <!-- Header principal com a marca e perfis de saúde -->
   <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-indigo-600 flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-emerald-500/20">
-          N
+        <div class="brand-mark" aria-hidden="true">
+          <img src="./nutricia-logo.png" alt="">
         </div>
+
         <div>
           <h1 class="text-xl font-black tracking-tight text-white flex items-center gap-2">
-            NutricIA <span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Feira de Ciências</span>
+            NutricIA
+            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Feira de Ciências
+            </span>
           </h1>
-          <p class="text-xs text-slate-400">Análise Nutricional Acadêmica & Comparador de Rótulos</p>
+          <p class="text-xs text-slate-400">
+            Análise Nutricional Acadêmica &amp; Comparador de Rótulos
+          </p>
         </div>
       </div>
 
-      <!-- Perfis de Saúde -->
-      <div class="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-xs">
-        <span class="text-[10px] uppercase tracking-wider font-bold text-slate-500 px-2">Perfis:</span>
-        <button data-profile="geral" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white">Geral</button>
-        <button data-profile="hipertensao" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">Hipertensão</button>
-        <button data-profile="diabetes" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">Diabetes</button>
-        <button data-profile="intestinal" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">Saúde Intestinal</button>
-        <button data-profile="atleta" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">Atleta</button>
+      <div class="flex flex-wrap items-center justify-center gap-3">
+
+        <div class="flex flex-wrap items-center justify-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-xs">
+          <span class="text-[10px] uppercase tracking-wider font-bold text-slate-500 px-2">Perfis:</span>
+
+          <button data-profile="geral" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white">
+            Geral
+          </button>
+          <button data-profile="hipertensao" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
+            Hipertensão
+          </button>
+          <button data-profile="diabetes" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
+            Diabetes
+          </button>
+          <button data-profile="intestinal" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
+            Saúde Intestinal
+          </button>
+          <button data-profile="atleta" class="profile-btn px-3 py-1.5 rounded-lg font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
+            Atleta
+          </button>
+        </div>
+
+        <button id="theme-toggle" type="button" aria-label="Alternar tema">
+          ☀️ Modo claro
+        </button>
       </div>
     </div>
 
-    <!-- Navegação do Menu Superior (5 abas requeridas) -->
     <nav class="bg-slate-900/80 backdrop-blur border-t border-slate-800/80">
       <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto no-scrollbar">
         <button data-target="comparador" class="tab-btn active px-4 py-3 text-sm font-semibold border-b-2 border-emerald-500 text-emerald-400 bg-slate-800/50 whitespace-nowrap transition-colors flex items-center gap-2">
@@ -74,7 +335,7 @@
           <span>⚙️</span> Lab de Passos
         </button>
         <button data-target="banco" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition-colors flex items-center gap-2">
-          <span>🗄️</span> Banco
+          <span>🧺</span> Banco
         </button>
         <button data-target="relatorio" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition-colors flex items-center gap-2">
           <span>🔬</span> Relatório Científico
@@ -83,47 +344,46 @@
     </nav>
   </header>
 
-  <!-- Banner do Perfil Ativo -->
   <div class="bg-slate-900/50 border-b border-slate-800/50 px-4 py-2">
-    <div class="max-w-7xl mx-auto flex items-center justify-between text-xs">
+    <div class="max-w-7xl mx-auto flex items-center justify-between text-xs gap-3">
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
         <span id="profile-badge" class="font-bold text-emerald-400">Perfil Geral</span>
-        <span id="profile-details" class="text-slate-400 hidden sm:inline">— Análise ampla de macro e micronutrientes sem foco restritivo individual.</span>
+        <span id="profile-details" class="text-slate-400 hidden sm:inline">
+          — Análise ampla de macro e micronutrientes sem foco restritivo individual.
+        </span>
       </div>
-      <span class="text-slate-500 text-[10px]">Ajustado dinamicamente</span>
+      <span class="text-slate-500 text-[10px]">Informação educativa</span>
     </div>
   </div>
 
-  <!-- Conteúdo Principal -->
   <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
-    <!-- 1. ABA COMPARADOR IAC -->
+    <!-- ABA 1: COMPARADOR -->
     <section id="tab-comparador" class="tab-content space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
         <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          <span>📊</span> Comparador de Alimentos e Índice IAC
+          <span>🥑</span> Comparador de Alimentos e Índice IAC
         </h2>
         <p class="text-xs text-slate-400 mb-6">
-          Selecione dois produtos do seu banco para comparar seus teores nutricionais por porção de 100g e avaliar a pontuação do algoritmo simulador IAC.
+          Compare informações nutricionais por 100 g. A pontuação IAC é uma simulação acadêmica, não um índice clínico validado.
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-2">Produto 1</label>
-            <select id="select-prod-1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500">
+            <label class="block text-xs font-semibold text-slate-300 mb-2" for="select-prod-1">Produto 1</label>
+            <select id="select-prod-1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm">
               <option value="">-- Selecione um produto --</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-2">Produto 2</label>
-            <select id="select-prod-2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500">
+            <label class="block text-xs font-semibold text-slate-300 mb-2" for="select-prod-2">Produto 2</label>
+            <select id="select-prod-2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm">
               <option value="">-- Selecione um produto --</option>
             </select>
           </div>
         </div>
 
-        <!-- Resultados da Comparação -->
         <div id="comparison-results">
           <p class="text-xs text-slate-500 text-center py-8">
             Selecione pelo menos um produto acima para visualizar a comparação nutricional.
@@ -132,101 +392,94 @@
       </div>
     </section>
 
-    <!-- 2. ABA SCANNER IA -->
+    <!-- ABA 2: SCANNER -->
     <section id="tab-scanner" class="tab-content hidden space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
         <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          <span>📷</span> Scanner por Câmera & Leitura de Código de Barras
+          <span>📷</span> Scanner de Código de Barras
         </h2>
         <p class="text-xs text-slate-400 mb-6">
-          Aponte a câmera do dispositivo para o código de barras (EAN-13) de um alimento industrializado para consultar os dados oficiais na base aberta Open Food Facts.
+          Consulte os dados disponíveis na base colaborativa Open Food Facts usando a câmera ou digitando o código de barras.
         </p>
 
-        <!-- Container do Leitor de Câmera -->
         <div class="max-w-md mx-auto bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-6">
           <div id="reader" class="overflow-hidden rounded-xl bg-slate-900 min-h-[200px] flex items-center justify-center text-xs text-slate-500">
             Aguardando inicialização da câmera...
           </div>
           <div id="scanner-feedback" class="mt-3 text-center text-xs">
-            <span class="text-slate-400">Aguardando permissão de câmera...</span>
+            <span class="text-slate-400">A câmera será solicitada ao abrir esta aba.</span>
           </div>
         </div>
 
-        <!-- Busca Manual por Código de Barras -->
         <div class="max-w-md mx-auto pt-4 border-t border-slate-800">
-          <h3 class="text-xs font-semibold text-slate-300 mb-2">Busca Manual por EAN-13</h3>
+          <h3 class="text-xs font-semibold text-slate-300 mb-2">Busca manual por código EAN</h3>
           <div class="flex gap-2">
-            <input type="text" id="manual-barcode" placeholder="Ex: 7891000100103" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-            <button id="btn-manual-search" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-colors">
+            <input type="text" id="manual-barcode" inputmode="numeric" placeholder="Digite o código de barras" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs">
+            <button id="btn-manual-search" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-4 py-2 rounded-xl">
               Buscar
             </button>
           </div>
         </div>
 
-        <!-- Exibição do Resultado Escaneado -->
         <div id="scan-result-container" class="mt-6 hidden"></div>
       </div>
     </section>
 
-    <!-- 3. ABA LAB DE PASSOS / PESOS -->
+    <!-- ABA 3: LABORATÓRIO -->
     <section id="tab-passos" class="tab-content hidden space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
         <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          <span>⚙️</span> Laboratório de Pesos e Algoritmo IAC
+          <span>🎛️</span> Laboratório de Pesos
         </h2>
         <p class="text-xs text-slate-400 mb-6">
-          Ajuste os coeficientes e penalidades da fórmula acadêmica para testar interativamente como diferentes teores de Sódio, Açúcar e Fibras alteram o índice de adequação.
+          Ajuste os coeficientes da fórmula simulada para observar como eles afetam a pontuação acadêmica.
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-            <label class="block text-xs font-semibold text-slate-300 flex justify-between">
-              <span>Penalidade de Sódio</span>
-              <span class="text-emerald-400 font-mono">2.0x</span>
+            <label class="block text-xs font-semibold text-slate-300" for="weight-sodium">
+              Penalidade de sódio <span class="text-emerald-400">2.0x</span>
             </label>
             <input type="range" id="weight-sodium" min="0" max="5" step="0.5" value="2.0" class="w-full accent-emerald-500">
-            <p class="text-[10px] text-slate-500">Aumenta o desconto na nota proporcional ao teor de Sódio.</p>
+            <p class="text-[10px] text-slate-500">Aumenta o desconto proporcional ao teor de sódio.</p>
           </div>
 
           <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-            <label class="block text-xs font-semibold text-slate-300 flex justify-between">
-              <span>Penalidade de Açúcar</span>
-              <span class="text-emerald-400 font-mono">1.5x</span>
+            <label class="block text-xs font-semibold text-slate-300" for="weight-sugar">
+              Penalidade de açúcar <span class="text-emerald-400">1.5x</span>
             </label>
             <input type="range" id="weight-sugar" min="0" max="5" step="0.5" value="1.5" class="w-full accent-emerald-500">
-            <p class="text-[10px] text-slate-500">Aumenta o desconto na nota por gramas de Açúcares adicionados.</p>
+            <p class="text-[10px] text-slate-500">Aumenta o desconto por gramas de açúcares.</p>
           </div>
 
           <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-            <label class="block text-xs font-semibold text-slate-300 flex justify-between">
-              <span>Bônus de Fibras</span>
-              <span class="text-emerald-400 font-mono">2.0x</span>
+            <label class="block text-xs font-semibold text-slate-300" for="weight-fiber">
+              Bônus de fibras <span class="text-emerald-400">2.0x</span>
             </label>
             <input type="range" id="weight-fiber" min="0" max="5" step="0.5" value="2.0" class="w-full accent-emerald-500">
-            <p class="text-[10px] text-slate-500">Pontuação positiva por presença de fibras nutricionais.</p>
+            <p class="text-[10px] text-slate-500">Acrescenta pontos conforme a quantidade de fibras.</p>
           </div>
         </div>
 
         <div id="lab-feedback" class="p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-xl text-xs text-emerald-300">
-          Ajuste os sliders para recalcular dinamicamente os valores no comparador.
+          Ajuste os controles para recalcular o IAC no comparador.
         </div>
       </div>
     </section>
 
-    <!-- 4. ABA BANCO DE ALIMENTOS -->
+    <!-- ABA 4: BANCO -->
     <section id="tab-banco" class="tab-content hidden space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
-              <span>🗄️</span> Banco de Alimentos Local
+              <span>🧺</span> Banco de Alimentos
             </h2>
-            <p class="text-xs text-slate-400">Produtos armazenados localmente e obtidos de consultas na API.</p>
+            <p class="text-xs text-slate-400">Produtos guardados neste navegador e dados encontrados na API.</p>
           </div>
-          <input type="text" id="search-db" oninput="renderProductsTable()" placeholder="Filtrar por nome, marca ou EAN..." class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 w-full sm:w-64">
+          <input type="text" id="search-db" oninput="renderProductsTable()" placeholder="Filtrar por nome, marca ou EAN..." class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs w-full sm:w-64">
         </div>
 
-        <!-- Tabela do Banco -->
         <div class="overflow-x-auto border border-slate-800 rounded-xl mb-8">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-950 text-slate-400 border-b border-slate-800">
@@ -239,83 +492,110 @@
                 <th class="p-3">Ação</th>
               </tr>
             </thead>
-            <tbody id="products-tbody" class="divide-y divide-slate-800/60">
-              <!-- Renderizado via app.js -->
-            </tbody>
+            <tbody id="products-tbody" class="divide-y divide-slate-800/60"></tbody>
           </table>
         </div>
 
-        <!-- Formulário de Inserção Manual -->
         <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-          <h3 class="text-xs font-bold text-slate-200 mb-3">Cadastrar Novo Alimento Manualmente</h3>
+          <h3 class="text-xs font-bold text-slate-200 mb-3">Cadastrar alimento manualmente</h3>
+
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-            <input type="text" id="new-name" placeholder="Nome do produto *" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
-            <input type="text" id="new-brand" placeholder="Marca" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
-            <input type="text" id="new-code" placeholder="Código EAN (opcional)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+            <input type="text" id="new-name" placeholder="Nome do produto *" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
+            <input type="text" id="new-brand" placeholder="Marca" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
+            <input type="text" id="new-code" placeholder="Código EAN (opcional)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
           </div>
+
           <div class="grid grid-cols-2 sm:grid-cols-7 gap-2 mb-4">
-            <input type="number" id="new-energy" placeholder="Kcal" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
-            <input type="number" id="new-carbs" placeholder="Carb (g)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
-            <input type="number" id="new-sugars" placeholder="Açúcar (g)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
-            <input type="number" id="new-proteins" placeholder="Prot (g)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
-            <input type="number" id="new-fats" placeholder="Gord (g)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
-            <input type="number" id="new-fiber" placeholder="Fibra (g)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
-            <input type="number" id="new-sodium" placeholder="Sódio (mg)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+            <input type="number" id="new-energy" placeholder="Kcal" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
+            <input type="number" id="new-carbs" placeholder="Carb (g)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
+            <input type="number" id="new-sugars" placeholder="Açúcar (g)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
+            <input type="number" id="new-proteins" placeholder="Prot (g)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
+            <input type="number" id="new-fats" placeholder="Gord (g)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
+            <input type="number" id="new-fiber" placeholder="Fibra (g)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
+            <input type="number" id="new-sodium" placeholder="Sódio (mg)" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs">
           </div>
-          <button id="btn-save-manual" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors">
+
+          <button id="btn-save-manual" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-4 py-2 rounded-lg">
             Salvar no Banco Local
           </button>
         </div>
       </div>
     </section>
 
-    <!-- 5. ABA RELATÓRIO CIENTÍFICO -->
+    <!-- ABA 5: RELATÓRIO -->
     <section id="tab-relatorio" class="tab-content hidden space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
         <div>
           <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
-            <span>🔬</span> Relatório Científico & Fundamentação
+            <span>🔬</span> Relatório Científico
           </h2>
           <p class="text-xs text-slate-400">
-            Painel explicativo do projeto acadêmico NutricIA desenvolvido para apresentação na Feira de Ciências.
+            Fundamentação e limitações do projeto NutricIA para a Feira de Ciências.
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Objetivo do Projeto</h3>
+            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Objetivo do projeto</h3>
             <p class="text-xs text-slate-300 leading-relaxed">
-              O NutricIA foi desenvolvido para promover o letramento nutricional através da análise comparativa e transparente de rótulos de alimentos industrializados, utilizando dados abertos e regras oficiais de rotulagem.
+              O NutricIA busca incentivar a leitura crítica de rótulos por meio da comparação transparente das informações nutricionais de alimentos industrializados.
             </p>
           </div>
 
           <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Fontes de Dados & Metodologia</h3>
+            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Fontes e metodologia</h3>
             <p class="text-xs text-slate-300 leading-relaxed">
-              As consultas em tempo real são realizadas na API colaborativa internacional <strong>Open Food Facts</strong>. O projeto utiliza diretrizes da <strong>TBCA (USP)</strong> e normas da <strong>Anvisa (RDC 429/2020)</strong> para fundamentação conceitual.
+              O aplicativo consulta a base colaborativa Open Food Facts. A TBCA e as normas da Anvisa são referências conceituais para discutir composição e rotulagem nutricional.
             </p>
           </div>
         </div>
 
         <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-          <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Limitações & Ressalvas Acadêmicas</h3>
+          <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Limitações importantes</h3>
           <ul class="list-disc list-inside text-xs text-slate-300 space-y-1 leading-relaxed">
-            <li>Campos ausentes na API aparecem estritamente como "Não disponível" e não são convertidos para zero.</li>
-            <li>O índice IAC é um modelo matemático simulador para fins didáticos e não substitui diagnósticos clínicos.</li>
-            <li>A Anvisa e a TBCA não possuem APIs públicas e abertas de consulta de produtos por código de barras; suas normas são aplicadas de forma conceitual.</li>
+            <li>Os dados da Open Food Facts são colaborativos e podem estar incompletos ou incorretos; confira o rótulo real.</li>
+            <li>A pontuação IAC é uma simulação acadêmica, não um índice oficial, diagnóstico ou recomendação clínica.</li>
+            <li>O banco local fica no navegador em que os produtos foram cadastrados e não é compartilhado automaticamente entre visitantes.</li>
           </ul>
         </div>
       </div>
     </section>
-
   </main>
 
-  <!-- Rodapé -->
   <footer class="bg-slate-900 border-t border-slate-800 py-4 px-4 text-center text-xs text-slate-500">
-    <p>NutricIA &copy; 2026 — Projeto de Feira de Ciências. Desenvolvido para fins educativos.</p>
+    <p>NutricIA © 2026 — Projeto educativo para a Feira de Ciências.</p>
   </footer>
 
-  <!-- Script principal do aplicativo -->
   <script src="app.js"></script>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const button = document.getElementById('theme-toggle');
+
+      const updateButton = () => {
+        const dark = root.classList.contains('dark');
+        button.textContent = dark ? '☀️ Modo claro' : '🌙 Modo escuro';
+        button.setAttribute(
+          'aria-label',
+          dark ? 'Ativar modo claro' : 'Ativar modo escuro'
+        );
+      };
+
+      updateButton();
+
+      button.addEventListener('click', () => {
+        root.classList.toggle('dark');
+
+        try {
+          localStorage.setItem(
+            'nutricia-theme',
+            root.classList.contains('dark') ? 'dark' : 'light'
+          );
+        } catch (error) {}
+
+        updateButton();
+      });
+    })();
+  </script>
 </body>
 </html>
