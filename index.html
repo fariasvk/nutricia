@@ -440,37 +440,72 @@
             <span class="tile-icon icon-green mb-0">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a8 8 0 0 0-8 8v2a3 3 0 0 0 3 3h2v-6H7a5 5 0 0 1 10 0h-2v6h2a3 3 0 0 0 3-3v-2a8 8 0 0 0-8-8Z"/><path d="M9 20h6"/></svg>
             </span>
-            <div class="flex-1"><p class="eyebrow">Perguntas e respostas</p><h1 class="text-2xl font-black mt-1">Converse com o NutricIA</h1><p class="muted text-sm mt-2">Pergunte sobre os dados dos produtos. A assistente deve dizer quando não encontrar informação suficiente, sem inventar valores.</p></div>
-          </div>
-          <div id="assistant-source-status" class="status-note mb-4">Verificando conexão da assistente...</div>
-          <div id="assistant-messages" class="chat-list" aria-live="polite" aria-label="Conversa com o NutricIA">
-            <div class="chat-bubble assistant">Olá! Posso ajudar a interpretar os dados nutricionais disponíveis no banco deste navegador. Para perguntas específicas sobre produtos, preciso que eles tenham sido pesquisados ou cadastrados antes.</div>
-          </div>
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button class="btn btn-secondary question-suggestion text-xs" type="button" data-question="Quais produtos têm dados sobre sódio no meu banco?">Dados de sódio</button>
-            <button class="btn btn-secondary question-suggestion text-xs" type="button" data-question="Compare os produtos cadastrados quanto a açúcares e fibras.">Comparar açúcares e fibras</button>
-            <button class="btn btn-secondary question-suggestion text-xs" type="button" data-question="Quais informações estão faltando nos produtos cadastrados?">Dados que estão faltando</button>
-          </div>
-          <form id="assistant-form" class="flex items-end gap-2">
-            <textarea id="assistant-question" class="field min-h-[54px] max-h-36 resize-y" rows="2" maxlength="1000" placeholder="Escreva sua pergunta..." required></textarea>
-            <button id="assistant-submit" class="btn btn-primary" type="submit" aria-label="Enviar pergunta">
-              <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12 20 4l-5 16-3-7-8-1Z M12 13l8-9"/></svg>
-              Enviar
-            </button>
-         
-          </form>
+       
+<div class="flex-1">
+  <p class="eyebrow">Perguntas e respostas</p>
+  <h1 class="text-2xl font-black mt-1">Converse com o NutricIA</h1>
+  <p class="muted text-sm mt-2">
+    Tire suas dúvidas sobre alimentação, nutrição, nutrientes,
+    saúde e escolhas alimentares. Você também pode pedir explicações
+    sobre rótulos e comparar produtos cadastrados.
+  </p>
+</div>
+</div>
 
-          <div class="soft p-3 mt-3 flex items-start gap-3" role="note">
-            <span aria-hidden="true">⏳</span>
-            <div>
-              <p class="font-bold text-sm">Tempo de resposta da IA</p>
-              <p class="muted text-xs mt-1">
-                Algumas respostas podem levar um pouco mais de tempo,
-                dependendo da demanda do serviço. Aguarde enquanto
-                a NutricIA prepara sua resposta.
-              </p>
-            </div>
-          </div>
+<div id="assistant-source-status" class="status-note mb-4">
+  Verificando conexão da assistente...
+</div>
+
+<div id="assistant-messages" class="chat-list" aria-live="polite" aria-label="Conversa com o NutricIA">
+  <div class="chat-bubble assistant">
+    Olá! Sou a NutricIA, sua assistente de inteligência artificial.
+    Posso responder perguntas sobre alimentação, nutrição e saúde,
+    explicar conceitos e ajudar você a entender os rótulos dos alimentos.
+    O que gostaria de saber?
+  </div>
+</div>
+
+<div class="flex flex-wrap gap-2 mb-4">
+  <button class="btn btn-secondary question-suggestion text-xs" type="button"
+    data-question="Quais são os benefícios de uma alimentação equilibrada?">
+    Alimentação equilibrada
+  </button>
+
+  <button class="btn btn-secondary question-suggestion text-xs" type="button"
+    data-question="Como interpretar a tabela nutricional de um alimento?">
+    Entender rótulos
+  </button>
+
+  <button class="btn btn-secondary question-suggestion text-xs" type="button"
+    data-question="Qual é a diferença entre carboidratos, proteínas e gorduras?">
+    Conhecer nutrientes
+  </button>
+</div>
+
+<form id="assistant-form" class="flex items-end gap-2">
+  <textarea id="assistant-question" class="field min-h-[54px] max-h-36 resize-y"
+    rows="2" maxlength="1000" placeholder="Escreva sua pergunta..." required></textarea>
+
+  <button id="assistant-submit" class="btn btn-primary" type="submit" aria-label="Enviar pergunta">
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="none"
+      stroke="currentColor" stroke-width="2">
+      <path d="M4 12 20 4l-5 16-3-7-8-1Z M12 13l8-9"/>
+    </svg>
+    Enviar
+  </button>
+</form>
+
+<div class="soft p-3 mt-3 flex items-start gap-3" role="note">
+  <span aria-hidden="true">⏳</span>
+  <div>
+    <p class="font-bold text-sm">Tempo de resposta da IA</p>
+    <p class="muted text-xs mt-1">
+      Algumas respostas podem levar um pouco mais de tempo,
+      dependendo da demanda do serviço. Aguarde enquanto
+      a NutricIA prepara sua resposta.
+    </p>
+  </div>
+</div>
 
           <p class="muted text-xs mt-3">Uso educativo; não substitui nutricionista ou orientação médica. Dados da Open Food Facts são colaborativos, e os cadastros manuais não são verificados.</p>
 
