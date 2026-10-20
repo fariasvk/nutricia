@@ -865,25 +865,28 @@ function initAssistant() {
     const submit = document.getElementById('assistant-submit');
     submit.disabled = true;
 
-    try {
-      const answer = await askNutricia(question);
-      loading.querySelector('.chat-text').textContent = answer.text;
-      if (answer.source) {
-        const meta = document.createElement('div');
-        meta.className = 'chat-meta';
-        meta.textContent = answer.source;
-        loading.appendChild(meta);
-      }
-    } catch (error) {
-      loading.querySelector('.chat-text').textContent = 'Não consegui consultar a assistente agora. Tente novamente mais tarde. Nenhum dado foi inventado.';
-    } finally {
-      assistantBusy = false;
-      submit.disabled = false;
-      const list = document.getElementById('assistant-messages');
-      list.scrollTop = list.scrollHeight;
-      questionBox.focus({ preventScroll: true });
-    }
-  });
+
+try {
+  const answer = await askNutricia(question);
+  loading.querySelector('.chat-text').textContent = formatNutriciaAnswer(answer.text);
+
+  if (answer.source) {
+    const meta = document.createElement('div');
+    meta.className = 'chat-meta';
+    meta.textContent = answer.source;
+    loading.appendChild(meta);
+  }
+} catch (error) {
+  loading.querySelector('.chat-text').textContent = 'Não consegui consultar a assistente agora. Tente novamente mais tarde. Nenhum dado foi inventado.';
+} finally {
+  assistantBusy = false;
+  submit.disabled = false;
+  const list = document.getElementById('assistant-messages');
+  list.scrollTop = list.scrollHeight;
+  questionBox.focus({ preventScroll: true });
+}
+});
+
 
   document.querySelectorAll('.question-suggestion').forEach(button => {
     button.addEventListener('click', () => {
@@ -904,6 +907,16 @@ function addChatBubble(text, type) {
   list.appendChild(bubble);
   list.scrollTop = list.scrollHeight;
   return bubble;
+}
+
+function formatNutriciaAnswer(text) {
+  return String(text ?? '')
+    .replace(/\r\n/g, '\n')
+    .replace(/^#{1,6}\s+(.+)$/gm, '$1')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/^\s*[-*]\s+/gm, '• ')
+    .replace(/^---+$/gm, '')
+    .trim();
 }
 
 async function askNutricia(question) {
