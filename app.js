@@ -11,10 +11,10 @@ const OFF_API_URL = 'https://world.openfoodfacts.org/api/v2/product/';
   Nunca coloque uma chave de API Gemini neste arquivo público.
 */
 const FIREBASE_CONFIG = {
-  apiKey: 'COLE_AQUI_FIREBASE_API_KEY',
-  authDomain: 'COLE_AQUI_FIREBASE_AUTH_DOMAIN',
-  projectId: 'COLE_AQUI_FIREBASE_PROJECT_ID',
-  appId: 'COLE_AQUI_FIREBASE_APP_ID'
+  apiKey: 'AIzaSyDP6U3Ieb_mt7SB11j3EqPGPUrBZQJBM_o',
+  authDomain: 'nutricia-160b1.firebaseapp.com',
+  projectId: 'nutricia-160b1',
+  appId: '1:697120155955:web:1167fc4c5d19328745b646'
 };
 const NUTRICIA_AI_ENDPOINT = ''; // Ex.: https://nutricia-ai.seu-subdominio.workers.dev/ask
 
