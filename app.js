@@ -850,8 +850,18 @@ function getEvidenceProducts() {
     }));
 }
 
+
 function initAssistant() {
   const form = document.getElementById('assistant-form');
+  const questionBox = document.getElementById('assistant-question');
+
+  questionBox.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (assistantBusy) return;
