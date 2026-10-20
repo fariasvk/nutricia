@@ -1003,8 +1003,7 @@ function updateAssistantStatus() {
   const el = document.getElementById('assistant-source-status');
   if (!el) return;
   if (NUTRICIA_AI_ENDPOINT) {
-    el.textContent = 'Assistente IA habilitada: as respostas usam apenas os registros enviados pelo aplicativo e devem indicar quando faltam dados.';
-  } else {
+    el.textContent = 'NutricIA conectada! Faça perguntas sobre alimentação, nutrição, saúde e produtos alimentícios. As respostas são geradas por inteligência artificial.';
     el.textContent = 'Assistente em modo local. Para habilitar IA generativa em linguagem natural, configure o Cloudflare Worker e o segredo GEMINI_API_KEY. A chave nunca deve ficar no código público.';
   }
 }
