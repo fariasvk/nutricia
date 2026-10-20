@@ -999,24 +999,16 @@ function localEvidenceAnswer(question, products) {
   return 'Posso conferir os dados de produtos cadastrados, mas esta versão ainda está no modo local e não tem IA generativa conectada. Faça perguntas específicas, por exemplo: “Quanto sódio há no produto X?” ou “Quais produtos têm dados de fibras?”. Para conversa em linguagem natural completa, configure o endpoint seguro do Cloudflare Worker descrito no arquivo LEIA-ME.';
 }
 
+
 function updateAssistantStatus() {
   const el = document.getElementById('assistant-source-status');
   if (!el) return;
+
   if (NUTRICIA_AI_ENDPOINT) {
     el.textContent = 'NutricIA conectada! Faça perguntas sobre alimentação, nutrição, saúde e produtos alimentícios. As respostas são geradas por inteligência artificial.';
+  } else {
     el.textContent = 'Assistente em modo local. Para habilitar IA generativa em linguagem natural, configure o Cloudflare Worker e o segredo GEMINI_API_KEY. A chave nunca deve ficar no código público.';
   }
-}
-
-function initProductEvents() {
-  // Mantido separado para futuras ampliações; a tabela usa listeners ao renderizar.
-}
-
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register('./sw.js').catch(() => {
-    // O app continua utilizável mesmo se o cache não puder ser registrado.
-  });
 }
 
 function escapeHtml(value) {
