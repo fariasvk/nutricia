@@ -876,10 +876,13 @@ try {
     meta.textContent = answer.source;
     loading.appendChild(meta);
   }
+
 } catch (error) {
   console.error('Erro na NutricIA:', error);
-  loading.querySelector('.chat-text').textContent = 'Não consegui consultar a assistente agora. Tente novamente mais tarde. Nenhum dado foi inventado.';
-} finally {
+
+  loading.querySelector('.chat-text').textContent =
+    error.message || 'Não consegui consultar a assistente agora. Tente novamente mais tarde.';
+
   assistantBusy = false;
   submit.disabled = false;
   const list = document.getElementById('assistant-messages');
@@ -932,10 +935,19 @@ async function askNutricia(question) {
         products
       })
     });
-    if (!response.ok) {
-      if (response.status === 503) throw new Error('A chave da IA não está configurada no servidor.');
-      throw new Error(`Erro no serviço de IA: ${response.status}`);
-    }
+   
+if (!response.ok) {
+  if (response.status === 429) {
+    throw new Error('A NutricIA atingiu o limite gratuito de perguntas. Aguarde a renovação da cota para continuar.');
+  }
+
+  if (response.status === 503) {
+    throw new Error('A inteligência artificial está temporariamente indisponível.');
+  }
+
+  throw new Error(`Erro no serviço de IA: ${response.status}`);
+}
+
     const data = await response.json();
     if (!data || typeof data.answer !== 'string' || !data.answer.trim()) throw new Error('Resposta vazia.');
     return { text: data.answer, source: data.source || 'Dados enviados pelo NutricIA' };
