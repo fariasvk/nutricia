@@ -16,7 +16,7 @@ const FIREBASE_CONFIG = {
   projectId: 'nutricia-160b1',
   appId: '1:697120155955:web:1167fc4c5d19328745b646'
 };
-const NUTRICIA_AI_ENDPOINT = ''; // Ex.: https://nutricia-ai.seu-subdominio.workers.dev/ask
+const NUTRICIA_AI_ENDPOINT = 'https://nutriciadivine-night-0498.victor-farias.workers.dev/ask'; // Ex.: https://nutricia-ai.seu-subdominio.workers.dev/ask
 
 const PROFILE_MAP = {
   geral: {
