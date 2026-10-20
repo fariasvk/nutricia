@@ -877,6 +877,7 @@ try {
     loading.appendChild(meta);
   }
 } catch (error) {
+  console.error('Erro na NutricIA:', error);
   loading.querySelector('.chat-text').textContent = 'Não consegui consultar a assistente agora. Tente novamente mais tarde. Nenhum dado foi inventado.';
 } finally {
   assistantBusy = false;
