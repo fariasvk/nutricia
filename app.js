@@ -1034,6 +1034,14 @@ function updateAssistantStatus() {
   }
 }
 
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+
+  navigator.serviceWorker.register('./sw.js').catch(() => {
+    // O aplicativo continua funcionando mesmo sem o cache.
+  });
+}
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
