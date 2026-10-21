@@ -99,7 +99,39 @@ let firebaseConfigured = false;
 let authMode = 'login';
 let introStep = 0;
 let assistantBusy = false;
+let deferredInstallPrompt = null;
 
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  document.querySelectorAll('#install-btn-auth, #install-btn-main')
+    .forEach(button => button.hidden = true);
+});
+
+function initInstallButtons() {
+  const buttons = document.querySelectorAll(
+    '#install-btn-auth, #install-btn-main'
+  );
+
+  buttons.forEach(button => {
+    button.addEventListener('click', async () => {
+      if (deferredInstallPrompt) {
+        const promptEvent = deferredInstallPrompt;
+        deferredInstallPrompt = null;
+        await promptEvent.prompt();
+        await promptEvent.userChoice;
+      } else {
+        alert(
+          'Para instalar o NutricIA, abra o menu do navegador e procure "Instalar aplicativo" ou "Adicionar à tela inicial".'
+        );
+      }
+    });
+  });
+}
 document.addEventListener('DOMContentLoaded', initNutricia);
 
 function initNutricia() {
