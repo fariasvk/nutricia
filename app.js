@@ -985,9 +985,15 @@ function initAssistant() {
     assistantBusy = true;
     addChatBubble(question, 'user');
     questionBox.value = '';
-    const loading = addChatBubble('', 'assistant');
-loading.querySelector('.chat-text').classList.add('typing-indicator');
-loading.querySelector('.chat-text').innerHTML = '<span></span><span></span><span></span>';
+const loading = addChatBubble('', 'assistant');
+const typing = loading.querySelector('.chat-text');
+
+typing.classList.add('typing-indicator');
+typing.innerHTML = `
+  <span style="display:inline-block;background:#888;width:8px;height:8px;border-radius:50%"></span>
+  <span style="display:inline-block;background:#888;width:8px;height:8px;border-radius:50%"></span>
+  <span style="display:inline-block;background:#888;width:8px;height:8px;border-radius:50%"></span>
+`;
     const submit = document.getElementById('assistant-submit');
     submit.disabled = true;
 
