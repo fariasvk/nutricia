@@ -1007,8 +1007,10 @@ try {
   loading.querySelector('.chat-text').textContent =
     error.message || 'Não consegui consultar a assistente agora. Tente novamente mais tarde.';
 
+  } finally {
   assistantBusy = false;
   submit.disabled = false;
+
   const list = document.getElementById('assistant-messages');
   list.scrollTop = list.scrollHeight;
   questionBox.focus({ preventScroll: true });
