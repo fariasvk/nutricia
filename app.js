@@ -985,14 +985,17 @@ function initAssistant() {
     assistantBusy = true;
     addChatBubble(question, 'user');
     questionBox.value = '';
-    const loading = addChatBubble('Estou conferindo os registros disponíveis...', 'assistant');
+    const loading = addChatBubble('', 'assistant');
+loading.querySelector('.chat-text').classList.add('typing-indicator');
+loading.querySelector('.chat-text').innerHTML = '<span></span><span></span><span></span>';
     const submit = document.getElementById('assistant-submit');
     submit.disabled = true;
 
 
 try {
   const answer = await askNutricia(question);
-  loading.querySelector('.chat-text').textContent = formatNutriciaAnswer(answer.text);
+  loading.querySelector('.chat-text').classList.remove('typing-indicator');
+loading.querySelector('.chat-text').textContent = formatNutriciaAnswer(answer.text);
 
   if (answer.source) {
     const meta = document.createElement('div');
@@ -1003,6 +1006,7 @@ try {
 
 } catch (error) {
   console.error('Erro na NutricIA:', error);
+  loading.querySelector('.chat-text').classList.remove('typing-indicator');
 
   loading.querySelector('.chat-text').textContent =
     error.message || 'Não consegui consultar a assistente agora. Tente novamente mais tarde.';
