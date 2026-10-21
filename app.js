@@ -87,7 +87,7 @@ function loadProducts() {
 const state = {
   activeTab: 'inicio',
   activeProfile: 'geral',
-  products: loadProducts(),
+  products: [],
   scannerInstance: null,
   scanning: false,
   weights: { sodium: 2.0, sugar: 1.5, fiber: 2.0 }
