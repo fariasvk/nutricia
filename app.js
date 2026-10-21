@@ -618,7 +618,7 @@ async function initCameraScanner() {
     await scanner.start(
       { facingMode: 'environment' },
       
-{ fps: 15, qrbox: { width: 300, height: 180 } },
+{ fps: 15, qrbox: { width: 250, height: 100 } },
 async decodedText => {
   if (state.scanning) return;
   state.scanning = true;
