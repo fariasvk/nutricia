@@ -124,11 +124,9 @@ function initInstallButtons() {
         deferredInstallPrompt = null;
         await promptEvent.prompt();
         await promptEvent.userChoice;
-      } else {
-        alert(
-          'Para instalar o NutricIA, abra o menu do navegador e procure "Instalar aplicativo" ou "Adicionar à tela inicial".'
-        );
-      }
+     } else {
+  console.log('Instalação não disponível neste momento.');
+}
     });
   });
 }
