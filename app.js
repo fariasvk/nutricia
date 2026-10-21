@@ -243,7 +243,10 @@ function initAuth() {
       firebaseDb = firebase.firestore();
       firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
       firebaseAuth.onAuthStateChanged(user => {
-        if (user) showApplication(user.email || 'Conta');
+      if (user) {
+  showApplication(user.email || 'Conta');
+  loadProductsFromCloud(user);
+}
         else if (localStorage.getItem('nutricia-guest-session') === '1') showApplication('Visitante');
         else if (!document.getElementById('splash-screen').classList.contains('hidden')) return;
         else showAuthScreen();
