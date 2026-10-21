@@ -810,7 +810,13 @@ async function removeProductFromCloud(code) {
 }
 function removeProductFromDb(code) {
   state.products = state.products.filter(p => p.code !== code);
-  try { localStorage.setItem('nutricia_db', JSON.stringify(state.products)); } catch (_) {}
+if (!firebaseAuth?.currentUser) {
+  try {
+    localStorage.setItem('nutricia_guest_db', JSON.stringify(state.products));
+  } catch (_) {
+    console.error('Erro ao atualizar os produtos do visitante.');
+  }
+}
   
   removeProductFromCloud(code);
   
