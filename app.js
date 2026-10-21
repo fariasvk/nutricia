@@ -721,6 +721,23 @@ async function loadProductsFromCloud(user) {
       .filter(p => p && p.code && p.per100g);
 
     console.log('Produtos encontrados na nuvem:', cloudProducts.length);
+    if (firebaseAuth.currentUser?.uid !== user.uid) return;
+
+const localProducts = state.products;
+
+const mergedProducts = [...cloudProducts];
+
+localProducts.forEach(product => {
+  if (!mergedProducts.some(p => p.code === product.code)) {
+    mergedProducts.push(product);
+  }
+});
+
+state.products = cloudProducts;
+
+renderProductsTable();
+updateCompareDropdowns();
+updateDashboardStats();
   } catch (error) {
     console.error('Erro ao carregar produtos do Firestore:', error);
   }
