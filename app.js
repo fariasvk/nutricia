@@ -113,6 +113,15 @@ window.addEventListener('appinstalled', () => {
 });
 
 function initInstallButtons() {
+    const isInstalled =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
+
+  if (isInstalled) {
+    document.querySelectorAll('#install-btn-auth, #install-btn-main')
+      .forEach(button => button.style.display = 'none');
+    return;
+  }
   const buttons = document.querySelectorAll(
     '#install-btn-auth, #install-btn-main'
   );
