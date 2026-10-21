@@ -240,6 +240,7 @@ function initAuth() {
     try {
       if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
       firebaseAuth = firebase.auth();
+      firebaseDb = firebase.firestore();
       firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
       firebaseAuth.onAuthStateChanged(user => {
         if (user) showApplication(user.email || 'Conta');
