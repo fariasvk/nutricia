@@ -791,6 +791,9 @@ async function removeProductFromCloud(code) {
 function removeProductFromDb(code) {
   state.products = state.products.filter(p => p.code !== code);
   try { localStorage.setItem('nutricia_db', JSON.stringify(state.products)); } catch (_) {}
+  
+  removeProductFromCloud(code);
+  
   renderProductsTable();
   updateCompareDropdowns();
   updateDashboardStats();
