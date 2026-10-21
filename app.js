@@ -612,14 +612,17 @@ async function initCameraScanner() {
     await scanner.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 260, height: 140 } },
-      async decodedText => {
-        if (state.scanning) return;
-        state.scanning = true;
-        await stopCameraScanner();
-        state.scanning = false;
-        document.getElementById('manual-barcode').value = decodedText;
-        await fetchProductFromOFF(decodedText);
-      },
+async decodedText => {
+  if (state.scanning) return;
+  state.scanning = true;
+
+  try {
+    document.getElementById('manual-barcode').value = decodedText;
+    await fetchProductFromOFF(decodedText);
+  } finally {
+    state.scanning = false;
+  }
+},
       () => {}
     );
     setScannerFeedback('Câmera ativa. Aponte para o código de barras do produto.', 'success');
