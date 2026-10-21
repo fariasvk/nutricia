@@ -160,6 +160,11 @@ function hideScreens() {
 
 function showApplication(identity = 'Visitante') {
   hideScreens();
+  
+  if (identity === 'Visitante') {
+  state.products = [];
+}
+  
   document.getElementById('application').classList.remove('hidden');
   const greeting = document.getElementById('welcome-user');
   if (greeting) {
