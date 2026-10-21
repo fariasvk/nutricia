@@ -703,6 +703,25 @@ function displayScanResult(product) {
       </div>
     </div>`;
 }
+async function loadProductsFromCloud(user) {
+  if (!user || !firebaseDb) return;
+
+  try {
+    const snapshot = await firebaseDb
+      .collection('users')
+      .doc(user.uid)
+      .collection('products')
+      .get();
+
+    const cloudProducts = snapshot.docs
+      .map(doc => doc.data())
+      .filter(p => p && p.code && p.per100g);
+
+    console.log('Produtos encontrados na nuvem:', cloudProducts.length);
+  } catch (error) {
+    console.error('Erro ao carregar produtos do Firestore:', error);
+  }
+}
 async function saveProductToCloud(product) {
   const user = firebaseAuth?.currentUser;
 
