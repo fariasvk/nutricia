@@ -161,8 +161,15 @@ function hideScreens() {
 function showApplication(identity = 'Visitante') {
   hideScreens();
   
-  if (identity === 'Visitante') {
-  state.products = [];
+if (identity === 'Visitante') {
+  try {
+    const saved = JSON.parse(localStorage.getItem('nutricia_guest_db') || '[]');
+    state.products = Array.isArray(saved)
+      ? saved.filter(p => p && p.code && p.per100g)
+      : [];
+  } catch (_) {
+    state.products = [];
+  }
 }
   
   document.getElementById('application').classList.remove('hidden');
