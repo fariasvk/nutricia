@@ -773,7 +773,9 @@ function saveProductToDb(product) {
   state.products = state.products.filter(p => p.code !== product.code);
   state.products.unshift(product);
   try {
-    localStorage.setItem('nutricia_db', JSON.stringify(state.products));
+   if (!firebaseAuth?.currentUser) {
+  localStorage.setItem('nutricia_guest_db', JSON.stringify(state.products));
+}
   } catch (_) {
     alert('O navegador não conseguiu salvar. Talvez o armazenamento esteja cheio.');
   }
