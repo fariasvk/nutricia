@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', initNutricia);
 
 function initNutricia() {
   initTheme();
+  initInstallButtons();
   initNavigation();
   initProfilePicker();
   initManualForms();
