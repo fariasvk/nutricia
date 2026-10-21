@@ -630,7 +630,9 @@ async decodedText => {
     state.scanning = false;
   }
 },
-      () => {}
+errorMessage => {
+  console.log('Scanner:', errorMessage);
+}
     );
     setScannerFeedback('Câmera ativa. Aponte para o código de barras do produto.', 'success');
   } catch (_) {
