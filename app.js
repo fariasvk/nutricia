@@ -607,11 +607,18 @@ async function initCameraScanner() {
   const reader = document.getElementById('reader');
   if (!reader) return;
   try {
-    const scanner = new Html5Qrcode('reader');
+ const scanner = new Html5Qrcode('reader', {
+  formatsToSupport: [
+    Html5QrcodeSupportedFormats.EAN_13,
+    Html5QrcodeSupportedFormats.EAN_8,
+    Html5QrcodeSupportedFormats.UPC_A
+  ]
+});
     state.scannerInstance = scanner;
     await scanner.start(
       { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 260, height: 140 } },
+      
+{ fps: 15, qrbox: { width: 300, height: 180 } },
 async decodedText => {
   if (state.scanning) return;
   state.scanning = true;
