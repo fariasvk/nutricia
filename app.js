@@ -703,7 +703,22 @@ function displayScanResult(product) {
       </div>
     </div>`;
 }
+async function saveProductToCloud(product) {
+  const user = firebaseAuth?.currentUser;
 
+  if (!user || !firebaseDb) return;
+
+  try {
+    await firebaseDb
+      .collection('users')
+      .doc(user.uid)
+      .collection('products')
+      .doc(encodeURIComponent(String(product.code)))
+      .set(product);
+  } catch (error) {
+    console.error('Erro ao salvar produto no Firestore:', error);
+  }
+}
 function saveProductToDb(product) {
   state.products = state.products.filter(p => p.code !== product.code);
   state.products.unshift(product);
@@ -712,6 +727,9 @@ function saveProductToDb(product) {
   } catch (_) {
     alert('O navegador não conseguiu salvar. Talvez o armazenamento esteja cheio.');
   }
+  
+  saveProductToCloud(product);
+  
   renderProductsTable();
   updateCompareDropdowns();
   updateDashboardStats();
