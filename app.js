@@ -332,6 +332,12 @@ function initAuth() {
 
   const logout = async () => {
     localStorage.removeItem('nutricia-guest-session');
+    
+    state.products = [];
+renderProductsTable();
+updateCompareDropdowns();
+updateDashboardStats();
+    
     if (firebaseAuth && firebaseAuth.currentUser) {
       try { await firebaseAuth.signOut(); } catch (_) {}
     }
