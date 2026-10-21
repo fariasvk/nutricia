@@ -94,6 +94,7 @@ const state = {
 };
 
 let firebaseAuth = null;
+let firebaseDb = null;
 let firebaseConfigured = false;
 let authMode = 'login';
 let introStep = 0;
