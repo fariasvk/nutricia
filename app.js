@@ -773,7 +773,21 @@ function saveProductToDb(product) {
   updateCompareDropdowns();
   updateDashboardStats();
 }
+async function removeProductFromCloud(code) {
+  const user = firebaseAuth?.currentUser;
+  if (!user || !firebaseDb) return;
 
+  try {
+    await firebaseDb
+      .collection('users')
+      .doc(user.uid)
+      .collection('products')
+      .doc(encodeURIComponent(String(code)))
+      .delete();
+  } catch (error) {
+    console.error('Erro ao excluir produto do Firestore:', error);
+  }
+}
 function removeProductFromDb(code) {
   state.products = state.products.filter(p => p.code !== code);
   try { localStorage.setItem('nutricia_db', JSON.stringify(state.products)); } catch (_) {}
