@@ -79,10 +79,12 @@ const PROFILE_MAP = {
     title: 'Perfil Alergia ao Ovo',
     text: 'Verifica ovos, derivados e avisos de alergênicos.'
   },
-  alergia_amendoim: {
+    alergia_amendoim: {
     label: 'Alergia ao amendoim',
     title: 'Perfil Alergia ao Amendoim',
-    text: 'Verifica amendoim e
+    text: 'Verifica amendoim e avisos de possível contaminação cruzada.'
+  }
+};
 const DEMO_PRODUCTS = [
   {
     code: 'DEMO-CEREAL',
@@ -124,6 +126,7 @@ function loadProducts() {
 const state = {
   activeTab: 'inicio',
   activeProfile: 'geral',
+  activeProfiles: ['geral'],
   products: [],
   scannerInstance: null,
   scanning: false,
@@ -555,9 +558,25 @@ function renderProfileOptions(query, targetId) {
   `).join('');
 
   container.querySelectorAll('[data-profile-pick]').forEach(option => {
-    option.addEventListener('click', () => {
-      state.activeProfile = option.dataset.profilePick;
-      updateProfileHighlights();
+   option.addEventListener('click', () => {
+  const selected = option.dataset.profilePick;
+
+  if (selected === 'geral') {
+    state.activeProfiles = ['geral'];
+  } else {
+    const current = state.activeProfiles.filter(p => p !== 'geral');
+
+    state.activeProfiles = current.includes(selected)
+      ? current.filter(p => p !== selected)
+      : [...current, selected];
+
+    if (state.activeProfiles.length === 0) {
+      state.activeProfiles = ['geral'];
+    }
+  }
+
+  state.activeProfile = state.activeProfiles[0];
+  updateProfileHighlights();
       document.getElementById('profile-picker-menu').classList.add('hidden');
       document.getElementById('profile-picker-button').setAttribute('aria-expanded', 'false');
       const mainSearch = document.getElementById('profile-search-main');
@@ -569,13 +588,24 @@ function renderProfileOptions(query, targetId) {
 }
 
 function updateProfileHighlights() {
-  const profile = PROFILE_MAP[state.activeProfile] || PROFILE_MAP.geral;
-  document.getElementById('profile-short-label').textContent = `Perfil: ${profile.label}`;
-  document.getElementById('profile-badge').textContent = profile.title;
-  document.getElementById('profile-details').textContent = profile.text;
-  document.getElementById('active-profile-name').textContent = profile.label;
-  document.getElementById('profile-main-title').textContent = profile.title;
-  document.getElementById('profile-main-desc').textContent = profile.text;
+  const selected = state.activeProfiles || ['geral'];
+
+  const profiles = selected.map(key =>
+    PROFILE_MAP[key]
+  ).filter(Boolean);
+
+  const names = profiles.map(profile => profile.label).join(' + ');
+  const descriptions = profiles.map(profile => profile.text).join(' ');
+
+  document.getElementById('profile-short-label').textContent =
+    `Perfis: ${names}`;
+
+  document.getElementById('profile-badge').textContent = names;
+  document.getElementById('profile-details').textContent = descriptions;
+  document.getElementById('active-profile-name').textContent = names;
+  document.getElementById('profile-main-title').textContent = names;
+  document.getElementById('profile-main-desc').textContent = descriptions;
+
   renderComparisonTable();
 }
 
@@ -1001,11 +1031,16 @@ function renderComparisonTable() {
       <p class="muted text-xs mt-1">Fonte: ${escapeHtml(product.source || 'Não informada')}</p>
       <div class="surface text-center p-4 mt-4"><p class="muted text-xs uppercase tracking-wide">IAC simulado</p><p class="text-2xl font-black mt-1">${scoreText}</p><p class="muted text-xs mt-1">Fórmula didática; não é índice oficial.</p></div>
       <div class="mt-4 space-y-0">${fields.map(([label,key,unit]) => {
-        const highlight =
-          (state.activeProfile === 'hipertensao' && key === 'sodium') ||
-          (state.activeProfile === 'diabetes' && ['carbs','sugars'].includes(key)) ||
-          (state.activeProfile === 'intestinal' && key === 'fiber') ||
-          (state.activeProfile === 'atleta' && ['energy','carbs','proteins'].includes(key));
+        const selectedProfiles = state.activeProfiles || [state.activeProfile];
+
+const highlight =
+  (selectedProfiles.includes('hipertensao') && key === 'sodium') ||
+  (selectedProfiles.includes('diabetes') && ['carbs', 'sugars'].includes(key)) ||
+  (selectedProfiles.includes('intestinal') && key === 'fiber') ||
+  (selectedProfiles.includes('atleta') && ['energy', 'carbs', 'proteins'].includes(key)) ||
+  (selectedProfiles.includes('colesterol') && key === 'fats') ||
+  (selectedProfiles.includes('obesidade') && ['energy', 'sugars', 'fiber'].includes(key)) ||
+  (selectedProfiles.includes('renal') && key === 'sodium');
         return `<div class="flex justify-between gap-3 py-2 border-b" style="border-color:var(--border);${highlight ? 'font-weight:800;color:var(--green)' : ''}"><span>${label}</span><span class="text-right">${displayNumber(product.per100g[key], unit)}</span></div>`;
       }).join('')}</div>
     </article>`;
@@ -1143,10 +1178,11 @@ async function askNutricia(question) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        question,
-        profile: PROFILE_MAP[state.activeProfile],
-        products
-      })
+  question,
+  profile: PROFILE_MAP[state.activeProfile],
+  profiles: state.activeProfiles.map(key => PROFILE_MAP[key]).filter(Boolean),
+  products
+})
     });
    
 if (!response.ok) {
