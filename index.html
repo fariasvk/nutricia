@@ -113,7 +113,33 @@
     .topbar-inner { width:min(100%,1280px); margin:auto; padding:12px clamp(14px,3vw,28px); display:flex; gap:14px; align-items:center; justify-content:space-between; }
     .header-tools { display:flex; align-items:center; justify-content:flex-end; gap:9px; flex-wrap:wrap; }
     .top-search { width:min(28vw,270px); min-width:160px; }
-    .profile-picker { position:relative; }
+    
+.profile-picker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.add-profile-button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0.65;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.add-profile-button:hover,
+.add-profile-button:focus-visible {
+  opacity: 1;
+  color: var(--green);
+}
+
     .profile-picker-menu { position:absolute; top:calc(100% + 9px); right:0; z-index:50; width:min(320px, calc(100vw - 28px)); border:1px solid var(--border); border-radius:18px; background:var(--surface-strong); box-shadow:var(--shadow); padding:12px; }
     .profile-option { width:100%; border:0; text-align:left; background:transparent; color:var(--ink); padding:11px; border-radius:12px; cursor:pointer; }
     .profile-option:hover, .profile-option[aria-selected="true"] { background:var(--surface-soft); }
@@ -308,8 +334,18 @@
             <button id="profile-picker-button" class="btn btn-secondary" type="button" aria-expanded="false" aria-controls="profile-picker-menu">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/><circle cx="12" cy="12" r="10"/></svg>
               <span id="profile-short-label">Perfil: Geral</span>
-            </button>
-            <div id="profile-picker-menu" class="profile-picker-menu hidden">
+</button>
+
+<button
+  id="add-profile-button"
+  class="add-profile-button"
+  type="button"
+  aria-label="Adicionar outro perfil de saúde"
+>
+  + Adicionar
+</button>
+
+<div id="profile-picker-menu" class="profile-picker-menu hidden">
               <label class="block text-sm font-bold mb-2" for="profile-search">Buscar perfil de saúde</label>
               <input id="profile-search" class="field" type="search" placeholder="Digite: diabetes, pressão..." autocomplete="off">
               <div id="profile-options" class="profile-results" role="listbox" aria-label="Perfis encontrados">
