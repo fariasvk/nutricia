@@ -27,25 +27,62 @@ const PROFILE_MAP = {
   hipertensao: {
     label: 'Hipertensão',
     title: 'Perfil Hipertensão',
-    text: 'Destaca o sódio por 100 g e por porção quando esses valores estão disponíveis.'
+    text: 'Destaca o sódio por 100 g e por porção.'
   },
   diabetes: {
     label: 'Diabetes',
     title: 'Perfil Diabetes',
-    text: 'Destaca carboidratos, açúcares e tamanho da porção quando informados no registro.'
+    text: 'Destaca carboidratos, açúcares e tamanho da porção.'
   },
   intestinal: {
     label: 'Saúde intestinal',
     title: 'Perfil Saúde Intestinal',
-    text: 'Destaca fibras e ingredientes quando essas informações constam no registro.'
+    text: 'Destaca fibras e ingredientes disponíveis.'
   },
   atleta: {
     label: 'Atleta',
     title: 'Perfil Atleta',
-    text: 'Destaca energia, carboidratos e proteínas quando informados.'
-  }
-};
-
+    text: 'Destaca energia, carboidratos e proteínas.'
+  },
+  lactose: {
+    label: 'Intolerância à lactose',
+    title: 'Perfil Intolerância à Lactose',
+    text: 'Verifica informações sobre lactose nos ingredientes e avisos do rótulo.'
+  },
+  celiaca: {
+    label: 'Doença celíaca',
+    title: 'Perfil Doença Celíaca',
+    text: 'Verifica a declaração de presença ou ausência de glúten.'
+  },
+  colesterol: {
+    label: 'Colesterol elevado',
+    title: 'Perfil Colesterol Elevado',
+    text: 'Destaca gorduras saturadas e trans quando disponíveis.'
+  },
+  obesidade: {
+    label: 'Controle de peso',
+    title: 'Perfil Controle de Peso',
+    text: 'Destaca energia, fibras, açúcares e tamanho das porções.'
+  },
+  renal: {
+    label: 'Doença renal crônica',
+    title: 'Perfil Saúde Renal',
+    text: 'Destaca sódio e outros nutrientes relevantes conforme orientação individual.'
+  },
+  alergia_leite: {
+    label: 'Alergia à proteína do leite',
+    title: 'Perfil Alergia ao Leite',
+    text: 'Verifica leite, derivados e avisos de alergênicos. Sem lactose não significa sem leite.'
+  },
+  alergia_ovo: {
+    label: 'Alergia ao ovo',
+    title: 'Perfil Alergia ao Ovo',
+    text: 'Verifica ovos, derivados e avisos de alergênicos.'
+  },
+  alergia_amendoim: {
+    label: 'Alergia ao amendoim',
+    title: 'Perfil Alergia ao Amendoim',
+    text: 'Verifica amendoim e
 const DEMO_PRODUCTS = [
   {
     code: 'DEMO-CEREAL',
