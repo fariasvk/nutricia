@@ -836,7 +836,9 @@ async function fetchProductFromOFF(barcode) {
   setScannerFeedback(`Consultando Open Food Facts para o código ${code}...`, 'info');
 
   try {
-    const response = await fetch(`${OFF_API_URL}${encodeURIComponent(code)}.json?fields=code,product_name,brands,nutriments,serving_size,image_front_url,ingredients_text,ingredients_text_pt`, {
+    
+const response = await fetch(`${OFF_API_URL}${encodeURIComponent(code)}.json?fields=code,product_name,brands,nutriments,serving_size,image_front_url,ingredients_text,ingredients_text_pt,allergens_tags,allergens,allergens_from_ingredients,traces_tags,traces`, {
+
       headers: { 'Accept': 'application/json' }
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -856,8 +858,23 @@ async function fetchProductFromOFF(barcode) {
       demo: false,
       queryDate: new Date().toLocaleDateString('pt-BR'),
       image: product.image_front_url || null,
-      ingredients: product.ingredients_text_pt || product.ingredients_text || 'Não disponível',
-      portion: product.serving_size || 'Não disponível',
+      
+ingredients: product.ingredients_text_pt || product.ingredients_text || 'Não disponível',
+
+allergens: Array.isArray(product.allergens_tags)
+  ? product.allergens_tags
+  : [],
+
+allergensText: product.allergens || product.allergens_from_ingredients || '',
+
+traces: Array.isArray(product.traces_tags)
+  ? product.traces_tags
+  : [],
+
+tracesText: product.traces || '',
+
+portion: product.serving_size || 'Não disponível',
+
       per100g: {
         energy: finiteOrNA(n['energy-kcal_100g']),
         carbs: finiteOrNA(n.carbohydrates_100g),
@@ -1070,6 +1087,63 @@ function calculateIACScore(product) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
+function getAllergenAlerts(product) {
+  const profiles = state.activeProfiles || ['geral'];
+
+  const restrictions = {
+    lactose: ['en:milk'],
+    alergia_leite: ['en:milk'],
+    alergia_ovo: ['en:eggs'],
+    alergia_amendoim: ['en:peanuts'],
+    celiaca: ['en:gluten']
+  };
+
+  const labels = {
+    lactose: 'Intolerância à lactose',
+    alergia_leite: 'Alergia à proteína do leite',
+    alergia_ovo: 'Alergia a ovo',
+    alergia_amendoim: 'Alergia a amendoim',
+    celiaca: 'Doença celíaca'
+  };
+
+  const allergens = Array.isArray(product.allergens)
+    ? product.allergens
+    : [];
+
+  const traces = Array.isArray(product.traces)
+    ? product.traces
+    : [];
+
+  const alerts = [];
+
+  for (const profile of profiles) {
+    const tags = restrictions[profile];
+    if (!tags) continue;
+
+    if (tags.some(tag => allergens.includes(tag))) {
+      alerts.push({
+        type: 'danger',
+        title: labels[profile],
+        message: 'O cadastro do produto identifica um ingrediente incompatível com este perfil. Confira o rótulo.'
+      });
+    } else if (tags.some(tag => traces.includes(tag))) {
+      alerts.push({
+        type: 'warning',
+        title: labels[profile],
+        message: 'O cadastro informa possíveis traços desse alérgeno. Confira o aviso de contaminação cruzada no rótulo.'
+      });
+    } else {
+      alerts.push({
+        type: 'unknown',
+        title: labels[profile],
+        message: 'Não há informação suficiente para confirmar a compatibilidade deste produto.'
+      });
+    }
+  }
+
+  return alerts;
+}
+
 function renderComparisonTable() {
   const container = document.getElementById('comparison-results');
   const code1 = document.getElementById('select-prod-1')?.value;
@@ -1094,11 +1168,37 @@ function renderComparisonTable() {
     if (!product) return '<div class="soft p-5 text-center muted">Selecione o outro produto para comparar.</div>';
     const score = calculateIACScore(product);
     const scoreText = score === null ? 'Dados insuficientes' : `${score}/100`;
+    const allergenAlerts = getAllergenAlerts(product);
+
+const allergenAlertsHTML = allergenAlerts.map(alert => {
+  const isDanger = alert.type === 'danger';
+  const isWarning = alert.type === 'warning';
+
+  const background = isDanger ? '#fff1f2'
+    : isWarning ? '#fff7ed'
+    : '#f3f4f6';
+
+  const color = isDanger ? '#b91c1c'
+    : isWarning ? '#9a3412'
+    : '#374151';
+
+  return `
+    <div class="rounded-xl p-3 mt-3"
+         style="background:${background};color:${color}">
+      <p class="font-bold text-sm">
+        ${isDanger ? '🔴' : isWarning ? '🟠' : '⚪'}
+        ${escapeHtml(alert.title)}
+      </p>
+      <p class="text-xs mt-1">${escapeHtml(alert.message)}</p>
+    </div>
+  `;
+}).join('');
     return `<article class="soft p-4">
       <h3 class="font-black text-lg">${escapeHtml(product.name)}</h3>
       <p class="muted text-sm mt-1">${escapeHtml(product.brand)}</p>
       <p class="muted text-xs mt-1">Fonte: ${escapeHtml(product.source || 'Não informada')}</p>
       <div class="surface text-center p-4 mt-4"><p class="muted text-xs uppercase tracking-wide">IAC simulado</p><p class="text-2xl font-black mt-1">${scoreText}</p><p class="muted text-xs mt-1">Fórmula didática; não é índice oficial.</p></div>
+      ${allergenAlertsHTML}
       <div class="mt-4 space-y-0">${fields.map(([label,key,unit]) => {
         const selectedProfiles = state.activeProfiles || [state.activeProfile];
 
