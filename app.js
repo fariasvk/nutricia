@@ -560,7 +560,9 @@ function renderProfileOptions(query, targetId) {
   
   const q = String(query || '').trim().toLocaleLowerCase('pt-BR');
 
-  const matches = Object.entries(PROFILE_MAP).filter(([key, profile]) =>
+  const matches = Object.entries(PROFILE_MAP)
+  .filter(([key]) => !state.activeProfiles.includes(key))
+  .filter(([key, profile]) =>
     `${key} ${profile.label} ${profile.title} ${profile.text}`.toLocaleLowerCase('pt-BR').includes(q)
   );
   if (!matches.length) {
