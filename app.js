@@ -1169,6 +1169,13 @@ function renderComparisonTable() {
     const score = calculateIACScore(product);
     const scoreText = score === null ? 'Dados insuficientes' : `${score}/100`;
     const allergenAlerts = getAllergenAlerts(product);
+    console.log('TESTE ALERGIAS:', {
+  perfis: state.activeProfiles,
+  produto: product.name,
+  allergens: product.allergens,
+  traces: product.traces,
+  alertas: allergenAlerts
+});
 
 const allergenAlertsHTML = allergenAlerts.map(alert => {
   const isDanger = alert.type === 'danger';
