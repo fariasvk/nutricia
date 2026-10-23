@@ -336,14 +336,7 @@
               <span id="profile-short-label">Perfil: Geral</span>
 </button>
 
-<button
-  id="add-profile-button"
-  class="add-profile-button"
-  type="button"
-  aria-label="Adicionar outro perfil de saúde"
->
-  + Adicionar
-</button>
+
 
 <div id="profile-picker-menu" class="profile-picker-menu hidden">
               <label class="block text-sm font-bold mb-2" for="profile-search">Buscar perfil de saúde</label>
@@ -601,10 +594,22 @@
           <p class="muted text-sm mb-5">Escolha um perfil para destacar nutrientes relevantes na comparação. Isso não é uma recomendação clínica personalizada.</p>
           <label for="profile-search-main" class="block text-sm font-bold mb-2">Buscar perfil de saúde</label>
           <input id="profile-search-main" class="field" type="search" placeholder="Digite o nome do perfil..." autocomplete="off">
-          <div id="profile-options-main" class="grid sm:grid-cols-2 gap-3 mt-3">
-            <p class="muted text-sm">Digite para encontrar um perfil.</p>
-          </div>
-          <div class="soft p-4 mt-5"><p class="font-bold" id="profile-main-title">Perfil Geral</p><p class="muted text-sm mt-1" id="profile-main-desc">Análise ampla de macro e micronutrientes sem foco restritivo individual.</p></div>
+          
+<div id="profile-options-main" class="grid sm:grid-cols-2 gap-3 mt-3">
+  <p class="muted text-sm">Digite para encontrar um perfil.</p>
+</div>
+
+<button
+  id="add-profile-button"
+  class="add-profile-button"
+  type="button"
+  aria-label="Adicionar outro perfil de saúde"
+>
+  + Adicionar
+</button>
+
+<div class="soft p-4 mt-5">
+
         </div>
         <div class="surface">
           <h2 class="section-title mb-4">Outras ferramentas</h2>
