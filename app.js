@@ -1087,23 +1087,29 @@ function calculateIACScore(product) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
+
 function getAllergenAlerts(product) {
-  const profiles = state.activeProfiles || ['geral'];
+  const profiles = state.activeProfiles?.length
+    ? state.activeProfiles
+    : ['geral'];
 
   const restrictions = {
-    lactose: ['en:milk'],
-    alergia_leite: ['en:milk'],
-    alergia_ovo: ['en:eggs'],
-    alergia_amendoim: ['en:peanuts'],
-    celiaca: ['en:gluten']
-  };
-
-  const labels = {
-    lactose: 'Intolerância à lactose',
-    alergia_leite: 'Alergia à proteína do leite',
-    alergia_ovo: 'Alergia a ovo',
-    alergia_amendoim: 'Alergia a amendoim',
-    celiaca: 'Doença celíaca'
+    alergia_leite: {
+      tags: ['en:milk'],
+      label: 'Alergia à proteína do leite'
+    },
+    alergia_ovo: {
+      tags: ['en:eggs'],
+      label: 'Alergia a ovo'
+    },
+    alergia_amendoim: {
+      tags: ['en:peanuts'],
+      label: 'Alergia a amendoim'
+    },
+    celiaca: {
+      tags: ['en:gluten'],
+      label: 'Doença celíaca'
+    }
   };
 
   const allergens = Array.isArray(product.allergens)
@@ -1116,27 +1122,38 @@ function getAllergenAlerts(product) {
 
   const alerts = [];
 
-  for (const profile of profiles) {
-    const tags = restrictions[profile];
-    if (!tags) continue;
+  for (const profileKey of profiles) {
+    const restriction = restrictions[profileKey];
+    if (!restriction) continue;
 
-    if (tags.some(tag => allergens.includes(tag))) {
+    const confirmed = restriction.tags.some(tag =>
+      allergens.includes(tag)
+    );
+
+    const possible = restriction.tags.some(tag =>
+      traces.includes(tag)
+    );
+
+    if (confirmed) {
       alerts.push({
         type: 'danger',
-        title: labels[profile],
-        message: 'O cadastro do produto identifica um ingrediente incompatível com este perfil. Confira o rótulo.'
+        title: `ALERTA — ${restriction.label}`,
+        message: 'O cadastro identifica um alérgeno incompatível com o perfil selecionado.',
+        recommendation: 'Não é recomendado consumir este produto devido à restrição selecionada.'
       });
-    } else if (tags.some(tag => traces.includes(tag))) {
+    } else if (possible) {
       alerts.push({
         type: 'warning',
-        title: labels[profile],
-        message: 'O cadastro informa possíveis traços desse alérgeno. Confira o aviso de contaminação cruzada no rótulo.'
+        title: `ATENÇÃO — ${restriction.label}`,
+        message: 'O cadastro informa que o produto pode conter traços do alérgeno.',
+        recommendation: 'Evite consumir até confirmar as informações de segurança no rótulo.'
       });
     } else {
       alerts.push({
         type: 'unknown',
-        title: labels[profile],
-        message: 'Não há informação suficiente para confirmar a compatibilidade deste produto.'
+        title: `NÃO VERIFICADO — ${restriction.label}`,
+        message: 'Não encontramos dados suficientes para confirmar se o produto é compatível com este perfil.',
+        recommendation: 'Confira o rótulo e as informações do fabricante antes de consumir.'
       });
     }
   }
@@ -1177,6 +1194,7 @@ function renderComparisonTable() {
   alertas: allergenAlerts
 });
 
+
 const allergenAlertsHTML = allergenAlerts.map(alert => {
   const isDanger = alert.type === 'danger';
   const isWarning = alert.type === 'warning';
@@ -1189,17 +1207,28 @@ const allergenAlertsHTML = allergenAlerts.map(alert => {
     : isWarning ? '#9a3412'
     : '#374151';
 
+  const border = isDanger ? '#fca5a5'
+    : isWarning ? '#fdba74'
+    : '#d1d5db';
+
   return `
-    <div class="rounded-xl p-3 mt-3"
-         style="background:${background};color:${color}">
-      <p class="font-bold text-sm">
+    <div class="rounded-xl p-4 mt-3"
+         role="status"
+         style="background:${background};color:${color};border:2px solid ${border}">
+      <p class="font-black text-sm">
         ${isDanger ? '🔴' : isWarning ? '🟠' : '⚪'}
         ${escapeHtml(alert.title)}
       </p>
-      <p class="text-xs mt-1">${escapeHtml(alert.message)}</p>
+
+      <p class="text-sm mt-2">${escapeHtml(alert.message)}</p>
+
+      <p class="font-bold text-sm mt-3">
+        ${escapeHtml(alert.recommendation)}
+      </p>
     </div>
   `;
 }).join('');
+
     return `<article class="soft p-4">
       <h3 class="font-black text-lg">${escapeHtml(product.name)}</h3>
       <p class="muted text-sm mt-1">${escapeHtml(product.brand)}</p>
