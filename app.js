@@ -197,6 +197,13 @@ async function loadCatalog() {
       return true;
     });
     if (catalogItems.length !== 299) throw new Error('Há códigos inválidos ou repetidos no catálogo.');
+    for (const item of catalogItems) {
+      const personal = state.products.find(p => p.code === item.code && p.userCorrected);
+      if (!personal) continue;
+      item.name = personal.name;
+      item.brand = personal.brand;
+      item._search = normalizeCatalogText(`${item.code} ${item.name} ${item.brand} ${item.category} ${item.package} ${item.variant}`);
+    }
     if (status) status.textContent = '299 registros de referência. Sem valores nutricionais ou alergênicos confirmados.';
     renderCatalogResults();
     return catalogItems;
@@ -223,10 +230,13 @@ function initCatalog() {
   document.getElementById('catalog-list')?.addEventListener('click', async event => {
     const detailButton = event.target.closest('[data-catalog-detail]');
     const fetchButton = event.target.closest('[data-catalog-fetch]');
+    const editButton = event.target.closest('[data-catalog-edit]');
     if (detailButton) {
       const code = detailButton.dataset.catalogDetail;
       catalogSelectedCode = catalogSelectedCode === code ? '' : code;
       renderCatalogDetails();
+    } else if (editButton) {
+      openProductEditor(editButton.dataset.catalogEdit);
     } else if (fetchButton && !catalogFetchBusy) {
       const code = fetchButton.dataset.catalogFetch;
       await queryCatalogNutrition(code);
@@ -250,12 +260,14 @@ function renderCatalogResults() {
     <article class="catalog-entry" data-catalog-code="${escapeHtml(item.code)}">
       <div class="catalog-copy">
         <p class="catalog-name">${escapeHtml(item.name)}</p>
+        ${state.products.some(p => p.code === item.code && p.userCorrected) ? '<span class="tiny-source">Sua correção salva</span>' : ''}
         <p class="muted text-xs">${escapeHtml(item.brand)} · ${escapeHtml(item.category)} · ${escapeHtml(item.package)}</p>
         <p class="muted text-xs font-mono">EAN ${escapeHtml(item.code)}</p>
       </div>
       <div class="catalog-actions">
         <button type="button" class="btn btn-secondary catalog-btn" data-catalog-detail="${escapeHtml(item.code)}" aria-expanded="${catalogSelectedCode === item.code}">Detalhes</button>
         <button type="button" class="btn btn-outline catalog-btn" data-catalog-fetch="${escapeHtml(item.code)}">Buscar nutrientes</button>
+        <button type="button" class="btn btn-quiet catalog-btn" data-catalog-edit="${escapeHtml(item.code)}">Corrigir dados</button>
       </div>
       <div class="catalog-detail-container" data-catalog-detail-container="${escapeHtml(item.code)}"></div>
     </article>`).join('')
@@ -307,6 +319,8 @@ async function queryCatalogNutrition(code) {
   buttons.forEach(button => { button.disabled = true; });
   if (status) status.textContent = `Consultando dados nutricionais de ${item.name}...`;
   try {
+    if (state.products.some(p => p.code === code && p.userCorrected) &&
+        !confirm('Você corrigiu este produto. Buscar nutrientes na fonte externa pode substituir seus dados pessoais. Continuar?')) return;
     const result = await fetchProductFromOFF(code);
     if (result) {
       if (status) status.textContent = `Cadastro encontrado: ${result.name}. Dados nutricionais incluídos em Meus produtos. Confira a embalagem.`;
@@ -370,6 +384,7 @@ function initNutricia() {
   initProfilePicker();
   initBrandHome();
   initManualForms();
+  initProductEditor();
   initComparator();
   initWeightLab();
   initGlobalSearch();
@@ -677,7 +692,7 @@ function showTab(target) {
   else stopCameraScanner();
   if (target === 'assistente') {
     updateAssistantStatus();
-    document.getElementById('assistant-question').focus({ preventScroll: true });
+    // Não focalizar automaticamente: evita abrir o teclado no celular.
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -879,25 +894,19 @@ try {
 }
 
 function initGlobalSearch() {
-  const search = document.getElementById('global-search');
   const homeSearch = document.getElementById('home-search');
-  const doSearch = value => {
+  homeSearch?.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
     const target = document.getElementById('search-db');
-    if (target) target.value = value;
+    if (target) target.value = homeSearch.value.trim();
+    homeSearch.blur();
     showTab('banco');
     renderProductsTable();
     catalogVisibleCount = 16;
     renderCatalogResults();
-  };
-  search.addEventListener('keydown', event => {
-    if (event.key === 'Enter') doSearch(search.value.trim());
   });
-  if (homeSearch) {
-    homeSearch.addEventListener('keydown', event => {
-      if (event.key === 'Enter') doSearch(homeSearch.value.trim());
-    });
-  }
-  document.getElementById('search-db').addEventListener('input', renderProductsTable);
+  document.getElementById('search-db')?.addEventListener('input', renderProductsTable);
 }
 
 function initManualForms() {
@@ -971,6 +980,12 @@ function initComparator() {
     button.disabled = true;
     button.textContent = 'Atualizando cadastro...';
     try {
+      if (state.products.some(p => p.code === button.dataset.refreshBarcode && p.userCorrected) &&
+          !confirm('A atualização externa substituirá suas correções. Continuar?')) {
+        button.textContent = 'Atualizar informações deste produto';
+        button.disabled = false;
+        return;
+      }
       const product = await fetchProductFromOFF(button.dataset.refreshBarcode);
       if (product) button.textContent = 'Dados atualizados';
       else { button.textContent = 'Falhou. Tentar novamente'; button.disabled = false; }
@@ -993,15 +1008,30 @@ function initComparator() {
     output.textContent = 'Analisando os dados disponíveis...';
     const snapshot = `${first.code}|${second.code}`;
     try {
-      const question = `Compare apenas estes dois produtos cadastrados: ${first.name} (código ${first.code}) e ${second.name} (código ${second.code}). Use exclusivamente seus nutrientes por 100 g e as declarações de ingredientes/alérgenos do contexto enviado. Explique as diferenças de forma curta, separando o IAC simulado da segurança para os perfis selecionados. Não declare produto seguro quando faltarem dados de alergênicos. Destaque se é necessário conferir o rótulo.`;
+      const question = `Compare ${first.name} com ${second.name} usando só os rótulos enviados por 100 g. Responda em até 150 palavras; destaque diferenças, limites de alergênicos e que o IAC é educativo.`;
       const response = await askNutricia(question, [first.code, second.code]);
       if (document.getElementById('comparison-ai-area').dataset.selection === snapshot) {
         output.textContent = formatNutriciaAnswer(response.text);
       }
     } catch (error) {
-      output.textContent = `Não foi possível gerar a explicação agora: ${error.message || 'tente novamente'}`;
+      // Se o Gemini cair, uma comparação determinística e identificada mantém a função útil.
+      // Não apresentamos regras locais como se fossem explicações geradas por IA.
+      output.textContent = `Gemini indisponível: ${error.message || 'tente novamente'}\n\n${makeLocalComparisonSummary(first, second)}`;
     } finally { button.disabled = false; }
   });
+}
+
+function makeLocalComparisonSummary(first, second) {
+  const metrics = [
+    ['Sódio', 'sodium', 'mg'], ['Açúcares', 'sugars', 'g'],
+    ['Fibras', 'fiber', 'g'], ['Proteínas', 'proteins', 'g'],
+    ['Gorduras', 'fats', 'g'], ['Carboidratos', 'carbs', 'g']
+  ];
+  const lines = metrics.map(([label, key, unit]) => {
+    const a = first.per100g?.[key], b = second.per100g?.[key];
+    return `• ${label}: ${first.name} — ${displayNumber(a, unit)}; ${second.name} — ${displayNumber(b, unit)}.`;
+  });
+  return `RESUMO LOCAL (SEM IA GENERATIVA)\nValores registrados por 100 g:\n${lines.join('\n')}\n\nDados ausentes não são zero. Esta comparação não confirma segurança para alergias nem substitui a conferência do rótulo. O IAC é uma simulação educativa.`;
 }
 
 function initWeightLab() {
@@ -1424,6 +1454,92 @@ if (!firebaseAuth?.currentUser) {
   updateDashboardStats();
 }
 
+// Correções pessoais: nunca alteram o JSON original ou a fonte Open Food Facts.
+function openProductEditor(code) {
+  const existing = state.products.find(p => String(p.code) === String(code));
+  const item = catalogItems?.find(p => String(p.code) === String(code));
+  if (!existing && !item) return;
+  const editor = document.getElementById('product-editor');
+  if (!editor) return;
+  const content = existing || {
+    code: item.code,
+    name: item.name,
+    brand: item.brand,
+    portion: 'Não disponível',
+    ingredients: 'Não disponível',
+    per100g: {},
+    source: 'Catálogo de referência (metadados, sem nutrientes)'
+  };
+  document.getElementById('edit-code').value = String(code);
+  for (const key of ['name','brand','portion','ingredients']) {
+    const val = String(content[key] ?? '');
+    document.getElementById(`edit-${key}`).value = /^(não dispon[ií]vel|não informado)$/i.test(val) ? '' : val;
+  }
+  for (const key of ['energy','carbs','sugars','proteins','fats','fiber','sodium']) {
+    const value = content.per100g?.[key];
+    document.getElementById(`edit-${key}`).value = typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
+  }
+  const message = document.getElementById('product-editor-message');
+  message.textContent = 'Preencha valores por 100 g. Dados corrigidos são pessoais, não verificados; confirme na embalagem.';
+  if (typeof editor.showModal === 'function') editor.showModal();
+  else editor.setAttribute('open', '');
+}
+
+function initProductEditor() {
+  const editor = document.getElementById('product-editor');
+  const close = () => { if (typeof editor.close === 'function') editor.close(); else editor.removeAttribute('open'); };
+  document.getElementById('close-product-editor')?.addEventListener('click', close);
+  document.getElementById('cancel-product-editor')?.addEventListener('click', close);
+  document.getElementById('product-edit-form')?.addEventListener('submit', event => {
+    event.preventDefault();
+    const code = document.getElementById('edit-code').value;
+    const product = state.products.find(p => String(p.code) === code);
+    const catalog = catalogItems?.find(p => String(p.code) === code);
+    if (!product && !catalog) return;
+    const name = document.getElementById('edit-name').value.trim();
+    if (!name) {
+      document.getElementById('product-editor-message').textContent = 'Preencha o nome do produto.';
+      return;
+    }
+    const per100g = {};
+    for (const key of ['energy','carbs','sugars','proteins','fats','fiber','sodium']) {
+      const raw = document.getElementById(`edit-${key}`).value.trim();
+      if (raw !== '' && (!Number.isFinite(Number(raw)) || Number(raw) < 0)) {
+        document.getElementById('product-editor-message').textContent = `Confira o valor de ${key}: apenas números não negativos.`;
+        return;
+      }
+      per100g[key] = raw === '' ? 'Não disponível' : Number(raw);
+    }
+    const ingredients = document.getElementById('edit-ingredients').value.trim() || 'Não disponível';
+    const previous = product || {};
+    const ingredientChanged = ingredients !== (previous.ingredients || 'Não disponível');
+    const saved = {
+      ...previous, code, name,
+      brand: document.getElementById('edit-brand').value.trim() || 'Não informado',
+      portion: document.getElementById('edit-portion').value.trim() || 'Não disponível',
+      ingredients, per100g,
+      originalSource: previous.originalSource || previous.source || catalog?.source || 'Catálogo de referência',
+      source: 'Correção do usuário (não verificada)',
+      verified: false, demo: false, userCorrected: true,
+      queryDate: new Date().toLocaleDateString('pt-BR'),
+      ...(ingredientChanged ? {
+        allergens: [], traces: [], allergensText: '', tracesText: '', labels: '', labelsTags: [], ingredientsAnalysisTags: []
+      } : {})
+    };
+    // Alterar ingredientes torna quaisquer inferências de alérgenos anteriores obsoletas.
+    // Não inferimos ausência de alergênicos a partir de campos vazios.
+    saveProductToDb(saved);
+    if (catalog) {
+      catalog.name = name;
+      catalog.brand = saved.brand;
+      catalog._search = normalizeCatalogText(`${catalog.code} ${catalog.name} ${catalog.brand} ${catalog.category} ${catalog.package} ${catalog.variant}`);
+    }
+    renderCatalogResults();
+    if (state.activeTab === 'scanner') displayScanResult(saved);
+    close();
+  });
+}
+
 function renderProductsTable() {
   const tbody = document.getElementById('products-tbody');
   if (!tbody) return;
@@ -1442,9 +1558,12 @@ function renderProductsTable() {
       <td>${displayNumber(p.per100g.sodium, 'mg')}</td>
       <td>${displayNumber(p.per100g.sugars, 'g')}</td>
       <td><span class="tiny-source">${escapeHtml(p.source || 'Fonte não informada')}</span></td>
-      <td><button type="button" class="btn btn-quiet text-sm" data-remove-code="${escapeHtml(p.code)}" aria-label="Remover ${escapeHtml(p.name)}">Remover</button></td>
+      <td><div class="product-table-actions"><button type="button" class="btn btn-secondary text-sm" data-edit-code="${escapeHtml(p.code)}" aria-label="Corrigir ${escapeHtml(p.name)}">Corrigir</button><button type="button" class="btn btn-quiet text-sm" data-remove-code="${escapeHtml(p.code)}" aria-label="Remover ${escapeHtml(p.name)}">Remover</button></div></td>
     </tr>
   `).join('');
+  tbody.querySelectorAll('[data-edit-code]').forEach(button => {
+    button.addEventListener('click', () => openProductEditor(button.dataset.editCode));
+  });
   tbody.querySelectorAll('[data-remove-code]').forEach(button => {
     button.addEventListener('click', () => removeProductFromDb(button.dataset.removeCode));
   });
@@ -1738,7 +1857,7 @@ loading.querySelector('.chat-text').textContent = formatNutriciaAnswer(answer.te
 
   const list = document.getElementById('assistant-messages');
   list.scrollTop = list.scrollHeight;
-  questionBox.focus({ preventScroll: true });
+  // Sem foco automático: somente o toque voluntário no campo abre o teclado.
 }
 });
 
@@ -1746,7 +1865,7 @@ loading.querySelector('.chat-text').textContent = formatNutriciaAnswer(answer.te
   document.querySelectorAll('.question-suggestion').forEach(button => {
     button.addEventListener('click', () => {
       document.getElementById('assistant-question').value = button.dataset.question;
-      document.getElementById('assistant-question').focus();
+      // Sugestões preenchem o campo sem levantar o teclado do smartphone.
     });
   });
 }
@@ -1781,7 +1900,7 @@ async function askNutricia(question, productCodes = null) {
   const products = mentionsProduct ? allProducts.slice(0, 8) : [];
   if (NUTRICIA_AI_ENDPOINT) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 35000);
+    const timeoutId = setTimeout(() => controller.abort(), 48000);
     let response;
     try {
       response = await fetch(NUTRICIA_AI_ENDPOINT, {
@@ -1796,7 +1915,7 @@ async function askNutricia(question, productCodes = null) {
         })
       });
     } catch (error) {
-      if (error.name === 'AbortError') throw new Error('O serviço de IA não respondeu dentro de 35 segundos. Confira a disponibilidade do Gemini no Cloudflare e tente novamente.');
+      if (error.name === 'AbortError') throw new Error('O serviço de IA não respondeu dentro de 48 segundos. Confira a disponibilidade do Gemini no Cloudflare e tente novamente.');
       throw new Error('Não foi possível conectar à IA. Confira a internet e a configuração do Cloudflare Worker.');
     } finally {
       clearTimeout(timeoutId);
@@ -1807,9 +1926,9 @@ if (!response.ok) {
       try { message = String((await response.json())?.error || '').slice(0, 280); }
       catch (_) {}
       if (response.status === 429) throw new Error(message || 'Limite de perguntas atingido. Tente novamente mais tarde.');
-      if (response.status === 503) throw new Error(message || 'A IA está indisponível no Cloudflare. Confira a chave e o modelo Gemini.');
+      if (response.status === 503) throw new Error(message || 'Gemini temporariamente indisponível. O aplicativo continua funcionando sem a resposta da IA.');
       if (response.status === 504) throw new Error(message || 'O Gemini não respondeu no tempo esperado. Tente novamente.');
-      if (response.status === 502) throw new Error(message || 'Falha entre Cloudflare e Gemini. Confira o modelo configurado.');
+      if (response.status === 502) throw new Error(message || 'A comunicação com o Gemini falhou mesmo após novas tentativas. Tente novamente mais tarde.');
       throw new Error(message || `Falha ao consultar a IA (HTTP ${response.status}).`);
     }
     let data;

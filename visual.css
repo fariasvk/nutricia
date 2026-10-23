@@ -115,3 +115,77 @@ html.dark .food-alert-unknown { background:#263832; border-color:#4c625b; color:
 .catalog-disclaimer { font-size:.75rem; line-height:1.5; color:var(--muted); border-top:1px solid var(--border); padding-top:10px; }
 @media(max-width:640px) { .catalog-list { grid-template-columns:1fr; } .catalog-entry { padding:12px; } .catalog-details-grid { grid-template-columns:1fr 1fr; } }
 @media(max-width:350px) { .catalog-details-grid { grid-template-columns:1fr; } }
+
+/* NutricIA v11 — cabeçalho compacto com configurações, sem sobreposição. */
+.topbar-inner { flex-wrap:nowrap; align-items:center; gap:12px; min-height:68px; }
+.brand-home { flex:0 1 auto; }
+.header-tools { display:flex; flex:0 1 auto; width:auto; align-items:center; gap:8px; min-width:0; flex-wrap:nowrap; }
+.header-tools .profile-picker { position:relative; flex:0 1 auto; min-width:0; max-width:230px; }
+#profile-picker-button { min-height:43px; white-space:nowrap; max-width:100%; }
+#profile-short-label { max-width:155px; }
+.header-settings-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid var(--border); border-radius:16px; min-height:43px; padding:9px 12px; color:var(--ink); background:var(--surface-soft); font-weight:750; cursor:pointer; white-space:nowrap; transition:background .2s, transform .2s,box-shadow .2s; }
+.header-settings-button:hover { background:var(--surface-strong); box-shadow:0 4px 18px rgba(7,135,93,.10); transform:translateY(-1px); }
+.header-settings-button:focus-visible,.editor-close:focus-visible { outline:3px solid var(--green); outline-offset:3px; }
+.settings-title-row { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.settings-symbol { width:48px;height:48px;display:grid;place-items:center;border-radius:17px;font-size:23px;background:var(--surface-soft);color:var(--green); }
+.product-table-actions { display:flex; gap:5px; align-items:center; justify-content:flex-start; flex-wrap:wrap; }
+.product-table-actions .btn { padding:8px 10px; font-size:.78rem; }
+.catalog-actions .btn-quiet { color:var(--green); font-weight:750; }
+/* Editor real por produto, sem publicar informações não verificadas. */
+.product-editor { padding:0; border:1px solid var(--border); background:var(--surface-strong); color:var(--ink); border-radius:26px; width:min(94vw,650px); max-height:min(90dvh,840px); box-shadow:0 30px 100px rgba(5,32,24,.27); }
+.product-editor::backdrop { background:rgba(4,26,19,.56); backdrop-filter:blur(5px); }
+.product-edit-form { padding:clamp(18px,3.5vw,28px); overflow-y:auto; max-height:90dvh; }
+.editor-header { display:flex; align-items:start; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.editor-close { flex:none; display:grid; place-items:center; border:1px solid var(--border); background:var(--surface-soft); color:var(--ink); width:38px;height:38px; border-radius:13px;cursor:pointer; }
+.editor-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));gap:11px; }
+.editor-fields label { display:flex;flex-direction:column;gap:6px;font-size:.78rem;font-weight:750; min-width:0; }
+.editor-fields .editor-full { grid-column:1 / -1; }
+.editor-fields .field { font-weight:450; }
+.editor-actions { display:flex;justify-content:flex-end;flex-wrap:wrap;gap:9px;margin-top:18px; }
+/* Animações suaves, discretas e acessíveis. */
+@keyframes nutriAppear { from { opacity:0; transform:translateY(9px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes nutriSoftPop { 0% {transform:scale(.985);opacity:.75;} 100% {transform:scale(1);opacity:1;} }
+.quick-tiles .tile { animation:nutriAppear .48s both cubic-bezier(.19,.8,.25,1); }
+.quick-tiles .tile:nth-child(2) { animation-delay:70ms; }
+.quick-tiles .tile:nth-child(3) { animation-delay:130ms; }
+.quick-tiles .tile:nth-child(4) { animation-delay:190ms; }
+.chat-bubble { animation:nutriSoftPop .2s ease-out both; }
+.catalog-entry { transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease; }
+.catalog-entry:hover { box-shadow:0 8px 23px rgba(6,57,37,.06);border-color:color-mix(in srgb,var(--green) 30%,var(--border)); }
+@media(max-width:900px) {
+ .topbar-inner { flex-wrap:nowrap; }
+ .brand-home { flex:0 1 auto; }
+ .header-tools { width:auto; display:flex;flex:0 1 auto; }
+ .header-tools .profile-picker { flex:0 1 auto; max-width:230px; }
+ #profile-picker-button { width:auto; justify-content:center; }
+}
+@media(max-width:680px) {
+ .topbar-inner { flex-wrap:nowrap; padding:9px 12px; min-height:63px;gap:7px; }
+ .brand-home { flex:1 1 auto; min-width:0; }
+ .brand-symbol.small { width:34px; height:34px; }
+ .wordmark { font-size:1.12rem; }
+ .header-tools { flex:0 0 auto; gap:6px; min-width:0; }
+ .header-tools .profile-picker { grid-column:auto; max-width:145px; }
+ #profile-picker-button { justify-content:center; max-width:145px;min-height:40px;padding:8px 9px;gap:5px;font-size:.78rem; }
+ #profile-picker-button svg { width:16px;height:16px; flex-shrink:0; }
+ #profile-short-label { max-width:100px; }
+ .header-settings-button { width:40px;height:40px;min-height:40px;padding:8px; }
+ .settings-button-label { display:none; }
+ .profile-picker-menu { left:auto;right:0; max-width:calc(100vw - 24px); }
+ .quick-tiles { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:380px) {
+ .topbar-inner { padding-left:9px; padding-right:9px;gap:5px; }
+ .brand-home {gap:5px;}
+ .brand-symbol.small {width:28px;height:28px;}
+ .wordmark {font-size:1.02rem;}
+ .header-settings-button {width:36px;height:38px;min-height:38px;padding:6px;}
+ #profile-picker-button {max-width:117px;min-height:38px;padding:7px;font-size:.72rem;}
+ #profile-short-label {max-width:78px;}
+ .header-tools .profile-picker {grid-column:auto;max-width:117px;}
+}
+@media(max-width:430px) { .editor-fields { grid-template-columns:1fr; } .editor-fields .editor-full { grid-column:auto; } }
+@media(prefers-reduced-motion:reduce) {
+ .quick-tiles .tile,.chat-bubble { animation:none !important; }
+ .catalog-entry,.header-settings-button { transition:none !important; }
+}

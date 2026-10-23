@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nutricia-cache-v10-scanner-ia';
+const CACHE_NAME = 'nutricia-cache-v11-settings-editor-gemini';
 const APP_ASSETS = [
   './', './index.html', './visual.css', './app.js', './manifest.json',
   './catalogo_299.json', './nutricia-hero-glass.webp', './nutricia-icon-192.png',
@@ -39,8 +39,12 @@ self.addEventListener('fetch', event => {
     // Assets carregam imediatamente do cache; um novo SW instala nova versão integral.
     if (cached && event.request.mode !== 'navigate') return cached;
     if (cached && event.request.mode === 'navigate') {
-      // Navegação rápida mesmo com internet lenta; evita esperar por HTTP bloqueado.
-      return cached;
+      // A navegação tenta a versão publicada; preserva cache se offline.
+      try {
+        const response = await fetch(event.request);
+        if (response.ok) await cache.put(event.request, response.clone());
+        return response;
+      } catch (_) { return cached; }
     }
     try {
       const response = await fetch(event.request);
