@@ -2134,7 +2134,9 @@ function updateAssistantStatus() {
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
-  navigator.serviceWorker.register('./sw.js').catch(() => {
+  navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'})
+    .then(registration => registration.update().catch(() => {}))
+    .catch(() => {
     // O aplicativo continua funcionando mesmo sem o cache.
   });
 }

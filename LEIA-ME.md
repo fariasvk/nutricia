@@ -1,33 +1,29 @@
-# NutricIA v13 — Nova identidade e animação de abertura
+# NutricIA v14 — Correção da tela desformatada
 
-## Publicar no GitHub Pages
+## O que causou o problema
+A captura mostrava a nova tela HTML, mas sem o CSS da abertura e com a imagem antiga.
+Isso é compatível com arquivo visual.css ausente/desatualizado ou cache antigo do PWA.
+Não foi possível verificar diretamente os arquivos publicados no seu GitHub Pages.
 
-1. Você já fez backup nas versões anteriores; guarde-o.
-2. Extraia o ZIP **NutricIA_v13_SITE.zip**.
-3. No GitHub `fariasvk/nutricia`, clique em **Add file > Upload files** e envie os **13 arquivos da pasta extraída**, diretamente na raiz do repositório (mesmo local de `index.html`).
-4. Confirme em **Commit changes**. Todos os arquivos anteriores precisam ser substituídos.
-5. Abra https://fariasvk.github.io/nutricia/ e atualize com Ctrl+Shift+R. Se o app estiver instalado no celular, feche e reabra, ou remova e reinstale apenas se os ícones continuarem antigos.
+## O que foi corrigido
+- O CSS completo está também embutido no index.html: a abertura fica centralizada mesmo se visual.css não carregar.
+- A logo da abertura também está embutida no HTML (não depende de arquivos de imagem ou cache).
+- Logo do login, cabeçalho, favicon e ícones instaláveis usam novos nomes v14.
+- app.js e visual.css usam versão na URL para não reutilizar cache antigo.
+- sw.js atualizado: prioridade para arquivos publicados em vez do cache antigo; limpa os caches da versão anterior.
+- Todas as funções de catálogo, scanner, comparação, perfis e IA foram mantidas da v13. Não altere o Cloudflare.
 
-**Importante:** esta atualização não exige mudar nada no Cloudflare. Não toque no Worker nem na chave da IA.
+## PUBLICAÇÃO NO GITHUB (PASSO A PASSO)
+1. Extraia o NutricIA_v14_SITE_CORRIGIDO.zip. Não envie o ZIP nem a pasta: envie os arquivos de dentro dela.
+2. No repositório fariasvk/nutricia, aba Code > Add file > Upload files, selecione TODOS os arquivos extraídos (incluindo os novos ícones v14).
+3. Faça Commit changes; não apague outros arquivos do repositório.
+4. Abra https://fariasvk.github.io/nutricia/?versao=14 em uma aba anônima (para testar sem cache antigo).
+5. Se a versão instalada no celular continuar antiga, feche o app, limpe os dados de site somente se você já tiver seus produtos salvos na nuvem/backup, ou atualize o atalho. Não limpe armazenamento sem backup dos produtos locais.
 
-## O que muda
+## VERIFICAR SE SUBIU
+- Abra https://fariasvk.github.io/nutricia/visual.css?v=14 — deve exibir texto CSS (e não erro 404).
+- Abra https://fariasvk.github.io/nutricia/nutricia-brand-v14.png — deve exibir o carrinho branco em fundo verde.
+- A abertura deve ter logo centralizada, título grande e botão verde-escuro; nenhum texto deve aparecer solto no canto superior esquerdo.
 
-- A imagem original enviada por você foi transformada nos ícones de 192 px, 512 px, 180 px (iOS), favicon e versão maskable para instalação Android.
-- Logo atualizado na entrada, login e cabeçalho.
-- Entrada moderna e minimalista: círculo verde sobe da parte inferior, expande, o símbolo surge e sobe suavemente, o slogan e o botão Começar aparecem.
-- Slogan: **Escaneie. Compare. Escolha melhor.**
-- Ao tocar em **Começar**, a tela desliza suavemente para a direita e abre:
-  - **Início** se já houver sessão Firebase ativa ou modo visitante salvo.
-  - **Login** se não houver sessão ativa.
-- A nova abertura aparece sempre ao abrir o aplicativo, e não impede a restauração da sessão.
-- Compatível com o ajuste de sistema **Reduzir movimento** para acessibilidade.
-- Demais funcionalidades da v12 foram preservadas: scanner, catálogo, comparação, perfis, Firebase e IA.
-
-## Testar
-
-1. Abra o site no celular: o círculo deve aparecer e expandir; logo, slogan e botão Começar devem surgir.
-2. Clique Começar; com sessão salva, vá ao início. Sem sessão, vá ao login.
-3. Teste também em computador e na versão instalada.
-4. Em celular, o ícone antigo pode continuar no atalho por cache do sistema; atualizar o PWA ou reinstalar resolve normalmente.
-
-Não foi necessário editar o Cloudflare. A resposta real do Gemini continua dependente das configurações e disponibilidade do serviço externo.
+## Limites do teste
+Verificado em navegador simulado com CSS externo bloqueado e com imagens antigas em cache. Não é possível confirmar a publicação real sem acesso à página no seu dispositivo.
