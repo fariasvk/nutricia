@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nutricia-cache-v11-settings-editor-gemini';
+const CACHE_NAME = 'nutricia-cache-v12-catalog-search-models';
 const APP_ASSETS = [
   './', './index.html', './visual.css', './app.js', './manifest.json',
   './catalogo_299.json', './nutricia-hero-glass.webp', './nutricia-icon-192.png',

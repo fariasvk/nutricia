@@ -189,3 +189,26 @@ html.dark .food-alert-unknown { background:#263832; border-color:#4c625b; color:
  .quick-tiles .tile,.chat-bubble { animation:none !important; }
  .catalog-entry,.header-settings-button { transition:none !important; }
 }
+
+
+/* v12: pesquisa compacta no comparador, mantendo o catálogo sob demanda. */
+.compare-finder { min-width:0; }
+.compare-search-wrap { position:relative; }
+.compare-magnifier { position:absolute;left:14px;top:50%;transform:translateY(-52%);font-size:25px;line-height:1;color:var(--muted);pointer-events:none; }
+.compare-search { padding-left:43px; width:100%; }
+.compare-search-results { max-height:292px; overflow-y:auto; border-radius:17px; margin-top:8px; }
+.compare-result-row { width:100%;text-align:left;display:flex;flex-direction:column;gap:3px;padding:12px 14px;margin-bottom:5px;border-radius:13px;background:var(--surface-strong);border:1px solid var(--border);color:var(--ink);cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s; }
+.compare-result-row:hover,.compare-result-row:focus-visible { border-color:var(--green);box-shadow:0 5px 18px rgba(8,109,77,.11); transform:translateY(-1px);outline:none; }
+.compare-result-name { font-size:.88rem;font-weight:800;overflow-wrap:anywhere; }
+.compare-result-meta { font-size:.74rem;color:var(--muted);overflow-wrap:anywhere; }
+.compare-search-empty,.compare-search-count { color:var(--muted);font-size:.8rem;padding:12px 13px;line-height:1.5; }
+.compare-picked { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px;padding:11px 13px;background:var(--surface-soft);border:1px solid var(--border);border-radius:16px; }
+.compare-picked span { min-width:0;display:flex;flex-direction:column;gap:2px; }
+.compare-picked strong { font-size:.84rem;overflow-wrap:anywhere; }
+.compare-picked small { color:var(--muted);font-size:.71rem; }
+.compare-picked button { width:31px;height:31px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--surface-strong);color:var(--ink);font-size:22px;line-height:1;cursor:pointer; }
+.compare-picked button:hover { background:var(--surface);color:#b91c1c; }
+.compare-reference-notice { display:flex;flex-direction:column;gap:6px;margin-top:14px;background:var(--surface-soft);border:1px solid var(--border);border-radius:15px;padding:13px;line-height:1.5;font-size:.82rem; }
+.compare-reference-notice span { font-size:.75rem;color:var(--muted); }
+.compare-reference-notice button { align-self:flex-start; margin-top:5px; }
+@media (prefers-reduced-motion:reduce) { .compare-result-row {transition:none;} }

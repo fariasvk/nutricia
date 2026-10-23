@@ -206,6 +206,8 @@ async function loadCatalog() {
     }
     if (status) status.textContent = '299 registros de referência. Sem valores nutricionais ou alergênicos confirmados.';
     renderCatalogResults();
+    refreshCompareFinders();
+    renderComparisonTable();
     return catalogItems;
   })().catch(error => {
     if (status) status.textContent = 'Não foi possível abrir o catálogo. Confira se catalogo_299.json foi publicado com o aplicativo.';
@@ -688,8 +690,9 @@ function showTab(target) {
     button.setAttribute('aria-current', active ? 'page' : 'false');
   });
   if (target === 'scanner') initCameraScanner();
-  if (target === 'banco') loadCatalog();
-  else stopCameraScanner();
+  if (target === 'banco' || target === 'comparador') loadCatalog();
+  if (target !== 'scanner') stopCameraScanner();
+  if (target === 'comparador') refreshCompareFinders();
   if (target === 'assistente') {
     updateAssistantStatus();
     // Não focalizar automaticamente: evita abrir o teclado no celular.
@@ -974,7 +977,58 @@ function initManualForms() {
 function initComparator() {
   document.getElementById('select-prod-1').addEventListener('change', renderComparisonTable);
   document.getElementById('select-prod-2').addEventListener('change', renderComparisonTable);
+  for (const side of [1, 2]) {
+    const input = document.getElementById(`compare-search-${side}`);
+    const list = document.getElementById(`compare-results-${side}`);
+    const selected = document.getElementById(`compare-picked-${side}`);
+    input?.addEventListener('input', () => {
+      // Alterar a busca não apaga uma escolha já feita até o usuário selecionar outra.
+      drawCompareSuggestions(side);
+    });
+    input?.addEventListener('focus', () => drawCompareSuggestions(side));
+    input?.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { list.innerHTML = ''; input.setAttribute('aria-expanded', 'false'); }
+      if (event.key === 'Enter') {
+        const first = list.querySelector('[data-compare-code]');
+        if (first) { event.preventDefault(); pickComparable(side, first.dataset.compareCode); }
+      }
+    });
+    list?.addEventListener('click', event => {
+      const button = event.target.closest('[data-compare-code]');
+      if (button) pickComparable(side, button.dataset.compareCode);
+    });
+    selected?.addEventListener('click', event => {
+      if (event.target.closest('[data-clear-compare]')) pickComparable(side, '');
+    });
+  }
+  document.addEventListener('click', event => {
+    if (event.target.closest('.compare-finder')) return;
+    for (const side of [1, 2]) {
+      const results = document.getElementById(`compare-results-${side}`);
+      if (results) results.innerHTML = '';
+      document.getElementById(`compare-search-${side}`)?.setAttribute('aria-expanded', 'false');
+    }
+  });
   document.getElementById('comparison-results')?.addEventListener('click', async event => {
+    const loadBtn = event.target.closest('[data-compare-fetch]');
+    if (loadBtn) {
+      const code = loadBtn.dataset.compareFetch;
+      loadBtn.disabled = true;
+      loadBtn.textContent = 'Consultando rótulo...';
+      const item = catalogItems?.find(p => p.code === code);
+      if (!item) return;
+      try {
+        const result = await fetchProductFromOFF(code);
+        if (!result) {
+          loadBtn.disabled = false;
+          loadBtn.textContent = 'Não encontrado. Tentar de novo';
+        }
+      } catch (_) {
+        loadBtn.disabled = false;
+        loadBtn.textContent = 'Falha de conexão. Tentar de novo';
+      }
+      return;
+    }
     const button = event.target.closest('[data-refresh-barcode]');
     if (!button || button.disabled) return;
     button.disabled = true;
@@ -992,9 +1046,15 @@ function initComparator() {
     } catch (_) { button.disabled = false; button.textContent = 'Tentar novamente'; }
   });
   document.getElementById('compare-ai-button')?.addEventListener('click', async () => {
-    const first = state.products.find(p => p.code === document.getElementById('select-prod-1').value);
-    const second = state.products.find(p => p.code === document.getElementById('select-prod-2').value);
+    const first = getComparableProduct(document.getElementById('select-prod-1').value);
+    const second = getComparableProduct(document.getElementById('select-prod-2').value);
     if (!first || !second) return;
+    if (first.referenceOnly || second.referenceOnly) {
+      const output = document.getElementById('comparison-ai-output');
+      output.classList.remove('hidden');
+      output.textContent = `Um ou dois produtos foram selecionados apenas pelo catálogo de referência, sem tabela nutricional verificada. Use “Buscar nutrientes” em cada ficha para tentar consultar o rótulo, ou “Corrigir dados” no Banco de alimentos para cadastrar os valores presentes na embalagem.\n\n${makeLocalComparisonSummary(first, second)}`;
+      return;
+    }
     if (first.demo || second.demo) {
       const output = document.getElementById('comparison-ai-output');
       output.classList.remove('hidden');
@@ -1576,19 +1636,105 @@ function updateDashboardStats() {
   if (api) api.textContent = String(state.products.filter(p => String(p.source).includes('Open Food Facts')).length);
 }
 
+// O catálogo de referência traz apenas metadados. Não inventar nutrientes nem alergênicos.
+function getComparableProduct(code) {
+  if (!code) return null;
+  const personal = state.products.find(p => String(p.code) === String(code));
+  if (personal) return personal;
+  const reference = catalogItems?.find(p => String(p.code) === String(code));
+  if (!reference) return null;
+  return {
+    code: reference.code,
+    name: reference.name,
+    brand: reference.brand,
+    source: 'Catálogo de referência — rótulo nutricional não verificado',
+    package: reference.package,
+    category: reference.category,
+    referenceOnly: true,
+    verified: false,
+    per100g: {},
+    ingredients: 'Não informado no catálogo',
+    allergens: [],
+    traces: []
+  };
+}
+
+function allComparableOptions() {
+  const byCode = new Map();
+  for (const item of catalogItems || []) {
+    byCode.set(String(item.code), {
+      code: String(item.code), name: item.name, brand: item.brand,
+      category: item.category, package: item.package, refOnly: true
+    });
+  }
+  for (const item of state.products) {
+    byCode.set(String(item.code), {
+      code: String(item.code), name: item.name, brand: item.brand,
+      category: '', package: item.portion || '', refOnly: false
+    });
+  }
+  return [...byCode.values()];
+}
+
+function drawCompareSuggestions(side) {
+  const field = document.getElementById(`compare-search-${side}`);
+  const results = document.getElementById(`compare-results-${side}`);
+  if (!field || !results) return;
+  const query = normalizeCatalogText(field.value);
+  if (!query) {
+    results.innerHTML = '<p class="compare-search-empty">Digite um nome, marca ou código para buscar. Nenhuma lista enorme aparecerá aqui.</p>';
+    field.setAttribute('aria-expanded', 'false');
+    return;
+  }
+  const found = allComparableOptions().filter(p => normalizeCatalogText(`${p.name} ${p.brand} ${p.code} ${p.category} ${p.package}`).includes(query));
+  const top = found.slice(0, 8);
+  results.innerHTML = top.length ? top.map(p => `
+    <button type="button" class="compare-result-row" role="option" data-compare-code="${escapeHtml(p.code)}">
+      <span class="compare-result-name">${escapeHtml(p.name)}</span>
+      <span class="compare-result-meta">${escapeHtml(p.brand || 'Marca não informada')} · ${escapeHtml(p.code)} · ${p.refOnly ? 'Catálogo de referência' : 'Meus produtos'}</span>
+    </button>`).join('') + (found.length > 8 ? `<p class="compare-search-count">Mais ${found.length - 8} resultado(s). Digite mais letras para refinar.</p>` : '')
+    : '<p class="compare-search-empty">Nenhum produto encontrado. Tente outra palavra ou código.</p>';
+  field.setAttribute('aria-expanded', top.length ? 'true' : 'false');
+}
+
+function refreshCompareFinders() {
+  for (const side of [1, 2]) {
+    const select = document.getElementById(`select-prod-${side}`);
+    const picked = document.getElementById(`compare-picked-${side}`);
+    if (!select || !picked) continue;
+    const product = getComparableProduct(select.value);
+    picked.classList.toggle('hidden', !product);
+    if (product) {
+      picked.innerHTML = `<span><strong>${escapeHtml(product.name)}</strong><small>${escapeHtml(product.brand || 'Sem marca')} · ${product.referenceOnly ? 'Catálogo de referência' : 'Meus produtos'}</small></span><button type="button" data-clear-compare aria-label="Remover produto ${side}">×</button>`;
+    } else picked.innerHTML = '';
+    const input = document.getElementById(`compare-search-${side}`);
+    if (input?.value.trim()) drawCompareSuggestions(side);
+  }
+}
+
+function pickComparable(side, code) {
+  const select = document.getElementById(`select-prod-${side}`);
+  const results = document.getElementById(`compare-results-${side}`);
+  const field = document.getElementById(`compare-search-${side}`);
+  if (!select) return;
+  select.innerHTML = '<option value="">Nenhum produto</option>' + (code ? `<option value="${escapeHtml(code)}">Selecionado</option>` : '');
+  select.value = code || '';
+  if (field) { field.value = ''; field.setAttribute('aria-expanded', 'false'); field.blur(); }
+  if (results) results.innerHTML = '';
+  refreshCompareFinders();
+  renderComparisonTable();
+}
+
 function updateCompareDropdowns() {
-  const s1 = document.getElementById('select-prod-1');
-  const s2 = document.getElementById('select-prod-2');
-  if (!s1 || !s2) return;
-  const old1 = s1.value;
-  const old2 = s2.value;
-  const options = '<option value="">Selecione um produto</option>' + state.products.map(p =>
-    `<option value="${escapeHtml(p.code)}">${escapeHtml(p.name)} — ${escapeHtml(p.brand)}</option>`
-  ).join('');
-  s1.innerHTML = options;
-  s2.innerHTML = options;
-  if (state.products.some(p => p.code === old1)) s1.value = old1;
-  if (state.products.some(p => p.code === old2)) s2.value = old2;
+  for (const side of [1, 2]) {
+    const select = document.getElementById(`select-prod-${side}`);
+    if (!select) continue;
+    const previous = select.value;
+    const exists = Boolean(getComparableProduct(previous));
+    select.innerHTML = '<option value="">Nenhum produto</option>' + (exists ? `<option value="${escapeHtml(previous)}">Selecionado</option>` : '');
+    if (exists) select.value = previous;
+  }
+  refreshCompareFinders();
   renderComparisonTable();
 }
 
@@ -1701,7 +1847,7 @@ function renderComparisonTable() {
   if (!container) return;
   const code1 = document.getElementById('select-prod-1')?.value;
   const code2 = document.getElementById('select-prod-2')?.value;
-  const products = [state.products.find(p => p.code === code1), state.products.find(p => p.code === code2)];
+  const products = [getComparableProduct(code1), getComparableProduct(code2)];
   const aiArea = document.getElementById('comparison-ai-area');
   const aiOutput = document.getElementById('comparison-ai-output');
   if (aiArea) aiArea.classList.toggle('hidden', !products[0] || !products[1]);
@@ -1733,11 +1879,15 @@ function renderComparisonTable() {
     </div>`).join('');
     const refreshButton = String(product.source || '').includes('Open Food Facts') && /^\d{8,14}$/.test(String(product.code || ''))
       ? `<button type="button" class="refresh-label-data" data-refresh-barcode="${escapeHtml(product.code)}">Atualizar informações deste produto</button>` : '';
+    const catalogInfo = product.referenceOnly
+      ? `<div class="compare-reference-notice"><strong>Registro de referência, sem rótulo nutricional.</strong><span>${escapeHtml(product.category || 'Categoria não informada')} · ${escapeHtml(product.package || 'Embalagem não informada')}</span><p>Este registro não possui valores para comparar nutrientes ou calcular IAC. Não significa que os nutrientes sejam zero.</p><button type="button" class="btn btn-secondary" data-compare-fetch="${escapeHtml(product.code)}">Buscar nutrientes</button></div>`
+      : '';
     return `<article class="soft comparison-product p-4${hasDanger ? ' comparison-incompatible' : ''}">
       <div class="comparison-product-header"><div><h3 class="font-black text-lg">${escapeHtml(product.name)}</h3>
       <p class="muted text-sm mt-1">${escapeHtml(product.brand)}</p><p class="muted text-xs mt-1">Fonte: ${escapeHtml(product.source || 'Não informada')}</p></div>
       ${hasDanger ? '<span class="comparison-status-danger">Incompatível com perfil</span>' : ''}</div>
       <div class="surface score-box text-center p-4 mt-4"><p class="muted text-xs uppercase tracking-wide">IAC nutricional simulado</p><p class="text-2xl font-black mt-1">${scoreText}</p><p class="muted text-xs mt-1">Não avalia alergias nem segurança de consumo.</p></div>
+      ${catalogInfo}
       ${alertHTML}
       ${refreshButton}
       <div class="mt-4 space-y-0">${fields.map(([label,key,unit]) => {

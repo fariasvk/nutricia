@@ -459,10 +459,22 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4"/></svg>
             Comparar alimentos
           </h1>
-          <p class="muted text-sm mb-6">Compare dados disponíveis por 100 g. O IAC é apenas uma simulação matemática para fins educativos, não um índice clínico validado.</p>
+          <p class="muted text-sm mb-6">Pesquise entre seus produtos e os 299 itens do catálogo de referência. Os itens sem rótulo nutricional podem ser selecionados, mas seus nutrientes não serão estimados. O IAC é apenas educativo.</p>
           <div class="grid md:grid-cols-2 gap-4 mb-6">
-            <div><label for="select-prod-1" class="block text-sm font-bold mb-2">Produto 1</label><select id="select-prod-1" class="field"><option value="">Selecione um produto</option></select></div>
-            <div><label for="select-prod-2" class="block text-sm font-bold mb-2">Produto 2</label><select id="select-prod-2" class="field"><option value="">Selecione um produto</option></select></div>
+            <div class="compare-finder">
+              <label for="compare-search-1" class="block text-sm font-bold mb-2">Produto 1</label>
+              <div class="compare-search-wrap"><span class="compare-magnifier" aria-hidden="true">⌕</span><input id="compare-search-1" class="field compare-search" type="search" autocomplete="off" placeholder="Pesquisar nome, marca ou código" aria-controls="compare-results-1" aria-expanded="false"></div>
+              <div id="compare-picked-1" class="compare-picked hidden" aria-live="polite"></div>
+              <div id="compare-results-1" class="compare-search-results" role="listbox" aria-label="Resultados para o produto 1"></div>
+              <select id="select-prod-1" class="sr-only" tabindex="-1" aria-label="Produto 1 selecionado"><option value="">Selecione um produto</option></select>
+            </div>
+            <div class="compare-finder">
+              <label for="compare-search-2" class="block text-sm font-bold mb-2">Produto 2</label>
+              <div class="compare-search-wrap"><span class="compare-magnifier" aria-hidden="true">⌕</span><input id="compare-search-2" class="field compare-search" type="search" autocomplete="off" placeholder="Pesquisar nome, marca ou código" aria-controls="compare-results-2" aria-expanded="false"></div>
+              <div id="compare-picked-2" class="compare-picked hidden" aria-live="polite"></div>
+              <div id="compare-results-2" class="compare-search-results" role="listbox" aria-label="Resultados para o produto 2"></div>
+              <select id="select-prod-2" class="sr-only" tabindex="-1" aria-label="Produto 2 selecionado"><option value="">Selecione um produto</option></select>
+            </div>
           </div>
           <div id="comparison-results"><p class="muted text-sm text-center py-8">Selecione pelo menos um produto para começar.</p></div>
           <div id="comparison-ai-area" class="ai-compare-panel soft p-4 mt-5 hidden">

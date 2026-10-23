@@ -1,46 +1,36 @@
-# NutricIA — atualização v11 (23/10/2026)
+# NutricIA v12 — IA e pesquisa para comparar alimentos
+
+## Instalar no GitHub Pages
+
+1. Faça uma cópia de segurança do repositório. Guarde também dados que existam apenas no navegador, se importante.
+2. Extraia o ZIP **NutricIA_v12_SITE.zip**.
+3. Envie **os 11 arquivos de dentro dele** para a raiz do repositório `fariasvk/nutricia` usando **Add file > Upload files**.
+4. Faça o **Commit changes**, mantendo `index.html`, `app.js`, `visual.css`, `sw.js` e `catalogo_299.json` juntos na raiz.
+5. Abra `https://fariasvk.github.io/nutricia/` e atualize com Ctrl+Shift+R. Em celular com PWA instalada, pode ser preciso fechar e reabrir o app para o novo service worker assumir.
+
+## Atualizar o Cloudflare
+
+1. Extraia **NutricIA_v12_CLOUDFLARE.zip** separadamente.
+2. No painel Cloudflare > Workers & Pages > seu Worker > Edit code, substitua o código anterior pelo conteúdo de `worker-cloudflare.js` e clique em **Deploy**.
+3. Em **Settings > Variables and Secrets**, mantenha `GEMINI_API_KEY` como **Secret**. **Nunca coloque a chave no GitHub.**
+4. Se já existir a variável `GEMINI_MODEL` com `gemini-2.5-flash-lite`, mude-a para **`gemini-3.5-flash-lite`** e publique a configuração. A versão nova do Worker também tenta identificar e usar modelos alternativos quando o indicado não estiver liberado para o seu projeto.
+5. Se ainda houver erro por cota, chave inválida ou serviço indisponível, a aplicação explica o erro. Não é possível garantir o acesso à API sem uma chave válida e um modelo liberado na conta.
 
 ## O que mudou
 
-- **Assistente e comparação por IA:** o Worker agora trata 502/503 com até 3 tentativas limitadas, pausas, e modelo alternativo (`gemini-2.5-flash-lite` / `gemini-2.5-flash`) para sobrecargas temporárias. Mensagens de erro mais claras sobre indisponibilidade, chave, modelo e cota. Timeout do site ajustado para 48 segundos. Em caso de falha na comparação com IA, o aplicativo mostra um **resumo LOCAL SEM IA** usando apenas valores efetivamente salvos, sem fingir uma resposta do Gemini.
-- **Celular:** cabeçalho reorganizado em logo + configurações + perfis, sem sobreposição nas resoluções de 320, 360, 390, 430, 768 e 1280 px em testes de navegador. Busca de alimentos continua na tela inicial e na aba Produtos, não no cabeçalho.
-- **Configurações:** agora possuem uma tela própria aberta pelo botão de engrenagem no cabeçalho, com tema, instalação e saída. Saíram de dentro de Perfil.
-- **Acessos rápidos:** removido Laboratório de pesos dos atalhos da tela inicial. A tela de laboratório continua disponível a partir do Perfil.
-- **Teclado no celular:** não abre automaticamente quando você entra em Pergunte à IA ou toca numa sugestão.
-- **Correções de produtos:** novos botões **Corrigir dados** no catálogo e **Corrigir** na lista pessoal; formulário editável com nome, marca, porção, ingredientes e nutrientes por 100 g. Campos em branco significam **Não disponível**, jamais zero. Alterações são pessoais (local/nuvem conforme login), ficam identificadas como correções **não verificadas** e não modificam a Open Food Facts ou o catálogo público. Se modificar ingredientes, alertas de alérgenos anteriores são descartados e não se pressupõe ausência de alérgenos.
-- **Animações:** leves e com suporte a `prefers-reduced-motion`.
-- **Cache PWA:** versão de cache incrementada para v11.
-
-## Como publicar — 2 ETAPAS
-
-### 1. GitHub Pages (site)
-
-1. Guarde um backup, caso ainda não tenha.
-2. Extraia **NutricIA_v11_SITE.zip**.
-3. Entre em https://github.com/fariasvk/nutricia > **Add file > Upload files**.
-4. Envie os arquivos extraídos **na raiz do repositório, ao lado de index.html**; não envie a pasta nem o ZIP.
-5. Confirme **Commit changes**.
-6. Abra https://fariasvk.github.io/nutricia/ e atualize. Se ainda vir a versão anterior, feche e reabra o app instalado, ou atualize novamente para ativar o novo Service Worker.
-
-O ZIP do site **não** contém `worker-cloudflare.js`.
-
-### 2. Cloudflare Worker (obrigatório para IA)
-
-1. Extraia **NutricIA_v11_CLOUDFLARE.zip**.
-2. Clique no arquivo `worker-cloudflare.js` com botão direito > **Abrir com > Bloco de Notas**.
-3. Use Ctrl+A e Ctrl+C para copiar todo o código.
-4. No https://dash.cloudflare.com/ vá em **Workers & Pages** > Worker da NutricIA > **Edit code**, substitua o código anterior (Ctrl+A, Ctrl+V) e clique **Deploy**.
-5. No Worker, abra **Settings > Variables and Secrets** e verifique que `GEMINI_API_KEY` está presente como segredo. Não divulgue esse valor, não o coloque no GitHub.
-6. **Opcional:** a variável `GEMINI_MODEL` pode ser `gemini-2.5-flash-lite`. Se ela não existir, esse é o padrão. O Worker tenta outro modelo 2.5 em falhas temporárias. Isso pode aumentar uso/custo na conta Google conforme o plano e a disponibilidade. **O código não altera nem cria sua chave, modelo configurado ou cotas**.
-7. O site usa o endpoint já configurado `https://nutriciadivine-night-0498.victor-farias.workers.dev/ask`. **O nome/endereço do Worker deve permanecer o mesmo**, senão é preciso atualizar a variável `NUTRICIA_AI_ENDPOINT` no `app.js`.
+- Comparador recebe campo de pesquisa para cada produto, com **até 8 sugestões** por vez. Busca por nome, marca, categoria, embalagem e código.
+- Permite selecionar produtos tanto de **Meus produtos** como do **catálogo de 299 itens**. A lista não mostra centenas de opções de uma vez.
+- Produtos somente cadastrais são comparáveis quanto a seus dados de identificação, mas os valores nutricionais são **Não disponíveis** até que rótulos reais sejam consultados ou inseridos. Sem cálculo de IAC com dados ausentes e sem conclusões de segurança para alergias.
+- **Buscar nutrientes** no comparador consulta Open Food Facts sob demanda. Falhas externas não apagam o catálogo.
+- A comparação com IA generativa só é solicitada para dois produtos com dados reais; quando algum for somente cadastral, mostra um resumo local honesto sem inventar nutrientes.
+- Worker passa a usar um modelo atual por padrão, tratar 404 da família 2.5 com fallback, consultar os modelos habilitados quando necessário e tratar cota e erros temporários.
+- Todas as correções de interface e scanner da v11 são mantidas.
 
 ## Como testar
 
-1. PC e celular: abra **Pergunte à IA**; teclado só deve aparecer depois de tocar no campo. Pergunte “O que é sódio?”.
-2. Compare dois produtos salvos e clique **Explicar com IA**; se Gemini estiver fora, aparecerá claramente um resumo local (não IA).
-3. Acesse **Produtos**, clique em **Corrigir dados**, altere um nome ou valor e salve; reabra pelo botão **Corrigir**.
-4. No smartphone: confira se **engrenagem**, **logo** e **perfis** ficam na mesma linha.
+1. Em **Comparar**, pesquise `azeitona` no Produto 1 e outro termo no Produto 2; escolha um resultado de cada lado.
+2. Confira o aviso **sem rótulo nutricional** ao selecionar um item que tenha só metadados.
+3. Pesquise um produto pessoal que tenha nutrientes cadastrados; o comparador usa esses dados.
+4. Em **Pergunte à IA**, faça `O que é sódio?` e em **Comparar** use **Explicar com IA** para dois produtos pessoais. Se o Gemini falhar, verá o resumo local.
 
-## Limitações reais
-
-O Gemini é um serviço externo: **HTTP 503 significa que pode estar temporariamente indisponível/sobrecarregado**. Novas tentativas aumentam a chance de sucesso, mas não podem garantir resposta se a API, a chave, o modelo, a conexão ou a cota estiverem indisponíveis. Um erro 429 envolve limite de uso/cota e não deve ser tratado como lentidão comum. Esta versão foi testada com simulações locais em navegador e Worker, não com a chave real do usuário, câmera física ou Cloudflare publicado. Correções pessoais não têm validação médica, alergênica ou sanitária.
+**Notas:** o IAC é uma simulação educativa. O catálogo de referência contém dados cadastrais, não laudos nutricionais completos. Valores de referência e edições de usuários exigem conferência do rótulo. Testes automatizados com respostas simuladas não garantem o funcionamento da chave Gemini real, do Cloudflare publicado ou da rede do celular.
