@@ -496,20 +496,28 @@ function showTab(target) {
 
 function initProfilePicker() {
   const button = document.getElementById('profile-picker-button');
+  const addButton = document.getElementById('add-profile-button');
   const menu = document.getElementById('profile-picker-menu');
   const search = document.getElementById('profile-search');
   const mainSearch = document.getElementById('profile-search-main');
 
-  button.addEventListener('click', () => {
+
+  function toggleProfileMenu() {
     const shouldOpen = menu.classList.contains('hidden');
+
     menu.classList.toggle('hidden', !shouldOpen);
     button.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+
     if (shouldOpen) {
       search.value = '';
       renderProfileOptions('', 'profile-options');
       setTimeout(() => search.focus(), 20);
     }
-  });
+  }
+
+  button.addEventListener('click', toggleProfileMenu);
+  addButton.addEventListener('click', toggleProfileMenu);
+
 
   search.addEventListener('input', () => renderProfileOptions(search.value, 'profile-options'));
   if (mainSearch) mainSearch.addEventListener('input', () => renderProfileOptions(mainSearch.value, 'profile-options-main'));
@@ -538,11 +546,9 @@ function initProfilePicker() {
 function renderProfileOptions(query, targetId) {
   const container = document.getElementById(targetId);
   if (!container) return;
+  
   const q = String(query || '').trim().toLocaleLowerCase('pt-BR');
-  if (!q) {
-    container.innerHTML = '<p class="muted text-sm p-3">Digite para procurar um perfil.</p>';
-    return;
-  }
+
   const matches = Object.entries(PROFILE_MAP).filter(([key, profile]) =>
     `${key} ${profile.label} ${profile.title} ${profile.text}`.toLocaleLowerCase('pt-BR').includes(q)
   );
@@ -551,7 +557,7 @@ function renderProfileOptions(query, targetId) {
     return;
   }
   container.innerHTML = matches.map(([key, profile]) => `
-    <button class="${targetId === 'profile-options-main' ? 'health-card w-full text-left' : 'profile-option'}" type="button" data-profile-pick="${escapeHtml(key)}" role="option" aria-selected="${state.activeProfile === key}">
+    <button class="${targetId === 'profile-options-main' ? 'health-card w-full text-left' : 'profile-option'}" type="button" data-profile-pick="${escapeHtml(key)}" role="option" aria-selected="${state.activeProfiles.includes(key)}">
       <span class="health-dot"></span>
       <span><strong class="block">${escapeHtml(profile.label)}</strong><span class="muted text-xs">${escapeHtml(profile.text)}</span></span>
     </button>
@@ -575,14 +581,16 @@ function renderProfileOptions(query, targetId) {
     }
   }
 
-  state.activeProfile = state.activeProfiles[0];
-  updateProfileHighlights();
-      document.getElementById('profile-picker-menu').classList.add('hidden');
-      document.getElementById('profile-picker-button').setAttribute('aria-expanded', 'false');
-      const mainSearch = document.getElementById('profile-search-main');
-      if (mainSearch) mainSearch.value = '';
-      renderProfileOptions('', 'profile-options-main');
-      renderProfileOptions('', 'profile-options');
+  
+state.activeProfile = state.activeProfiles[0];
+updateProfileHighlights();
+
+const mainSearch = document.getElementById('profile-search-main');
+const menuSearch = document.getElementById('profile-search');
+
+renderProfileOptions(mainSearch?.value || '', 'profile-options-main');
+renderProfileOptions(menuSearch?.value || '', 'profile-options');
+
     });
   });
 }
