@@ -123,15 +123,33 @@ function loadProducts() {
   }
 }
 
+
+const savedProfiles = (() => {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem('nutricia-active-profiles')
+    );
+
+    if (Array.isArray(saved) && saved.length > 0) {
+      return saved;
+    }
+  } catch (error) {
+    console.warn('Não foi possível recuperar os perfis:', error);
+  }
+
+  return ['geral'];
+})();
+
 const state = {
   activeTab: 'inicio',
-  activeProfile: 'geral',
-  activeProfiles: ['geral'],
+  activeProfile: savedProfiles[0],
+  activeProfiles: savedProfiles,
   products: [],
   scannerInstance: null,
   scanning: false,
   weights: { sodium: 2.0, sugar: 1.5, fiber: 2.0 }
 };
+
 
 let firebaseAuth = null;
 let firebaseDb = null;
@@ -613,6 +631,16 @@ function updateProfileHighlights() {
   const selected = state.activeProfiles?.length
     ? state.activeProfiles
     : ['geral'];
+  
+try {
+  localStorage.setItem(
+    'nutricia-active-profiles',
+    JSON.stringify(selected)
+  );
+} catch (error) {
+  console.warn('Não foi possível salvar os perfis:', error);
+}
+
 
   const profiles = selected
     .map(key => PROFILE_MAP[key])
@@ -1216,7 +1244,6 @@ const allergenAlertsHTML = allergenAlerts.map(alert => {
          role="status"
          style="background:${background};color:${color};border:2px solid ${border}">
       <p class="font-black text-sm">
-        ${isDanger ? '🔴' : isWarning ? '🟠' : '⚪'}
         ${escapeHtml(alert.title)}
       </p>
 
