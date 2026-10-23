@@ -1,29 +1,28 @@
-# NutricIA v14 — Correção da tela desformatada
+# NutricIA v15 — Ajustes no catálogo, ícones, dock e chat
 
-## O que causou o problema
-A captura mostrava a nova tela HTML, mas sem o CSS da abertura e com a imagem antiga.
-Isso é compatível com arquivo visual.css ausente/desatualizado ou cache antigo do PWA.
-Não foi possível verificar diretamente os arquivos publicados no seu GitHub Pages.
+## Mudanças
+- Catálogo de 299 referências: **não mostra uma lista enorme até pesquisar**; após a pesquisa, exibe no máximo 8 resultados por vez, com carregamento incremental.
+- Exibe nome, marca, embalagem, EAN e **nutrientes apenas quando tiverem sido consultados/corrigidos**. Registro só cadastral não equivale a uma tabela nutricional. Os 299 itens não trazem valores nutricionais verificados, então não podem ser inventados.
+- Botões Buscar nutrientes (Open Food Facts, consulta sob demanda), Corrigir dados e Detalhes continuam disponíveis.
+- Ícone baseado na imagem enviada, sem moldura branca externa. Ícones PWA, favicon, login, cabeçalho e abertura atualizados.
+- Barra inferior fixa no viewport em todas as telas, independente de rolagem.
+- Pergunte à IA: mostra **Cancelar** durante uma solicitação. Ao cancelar, aborta a requisição no navegador e libera a interface; isso pode não interromper o processamento já iniciado no servidor e não reverte o uso de tokens na API.
+- `app.js?v=15`, `visual.css?v=15`, `manifest.json?v=15`, ícones v15 e novo `sw.js` para reduzir misturas de cache.
 
-## O que foi corrigido
-- O CSS completo está também embutido no index.html: a abertura fica centralizada mesmo se visual.css não carregar.
-- A logo da abertura também está embutida no HTML (não depende de arquivos de imagem ou cache).
-- Logo do login, cabeçalho, favicon e ícones instaláveis usam novos nomes v14.
-- app.js e visual.css usam versão na URL para não reutilizar cache antigo.
-- sw.js atualizado: prioridade para arquivos publicados em vez do cache antigo; limpa os caches da versão anterior.
-- Todas as funções de catálogo, scanner, comparação, perfis e IA foram mantidas da v13. Não altere o Cloudflare.
+## PUBLICAR SITE (GITHUB)
+1. Faça backup do repositório e evite apagar dados locais do navegador sem exportá-los.
+2. Extraia NutricIA_v15_SITE.zip.
+3. GitHub > fariasvk/nutricia > Add file > Upload files > envie todos os arquivos da pasta (não o ZIP ou a pasta), sobrescrevendo os anteriores. Faça Commit.
+4. Após GitHub Pages publicar, teste em aba anônima com https://fariasvk.github.io/nutricia/?versao=15.
 
-## PUBLICAÇÃO NO GITHUB (PASSO A PASSO)
-1. Extraia o NutricIA_v14_SITE_CORRIGIDO.zip. Não envie o ZIP nem a pasta: envie os arquivos de dentro dela.
-2. No repositório fariasvk/nutricia, aba Code > Add file > Upload files, selecione TODOS os arquivos extraídos (incluindo os novos ícones v14).
-3. Faça Commit changes; não apague outros arquivos do repositório.
-4. Abra https://fariasvk.github.io/nutricia/?versao=14 em uma aba anônima (para testar sem cache antigo).
-5. Se a versão instalada no celular continuar antiga, feche o app, limpe os dados de site somente se você já tiver seus produtos salvos na nuvem/backup, ou atualize o atalho. Não limpe armazenamento sem backup dos produtos locais.
+## CORRIGIR GEMINI (CLOUDFLARE): NECESSÁRIO
+1. Extraia NutricIA_v15_CLOUDFLARE.zip.
+2. Cloudflare Worker > Edit code: substitua tudo pelo novo worker-cloudflare.js e Deploy.
+3. Settings > Variables and Secrets: mude GEMINI_MODEL para `gemini-3.5-flash-lite` ou remova essa variável antiga; confira a existência de GEMINI_API_KEY sem expor a chave.
+4. Abra https://nutriciadivine-night-0498.victor-farias.workers.dev/health e confirme `"version":"15"`.
+5. Faça uma pergunta simples na IA. A disponibilidade real depende da sua chave e do serviço Gemini.
 
-## VERIFICAR SE SUBIU
-- Abra https://fariasvk.github.io/nutricia/visual.css?v=14 — deve exibir texto CSS (e não erro 404).
-- Abra https://fariasvk.github.io/nutricia/nutricia-brand-v14.png — deve exibir o carrinho branco em fundo verde.
-- A abertura deve ter logo centralizada, título grande e botão verde-escuro; nenhum texto deve aparecer solto no canto superior esquerdo.
-
-## Limites do teste
-Verificado em navegador simulado com CSS externo bloqueado e com imagens antigas em cache. Não é possível confirmar a publicação real sem acesso à página no seu dispositivo.
+## Verificações/limites
+- O ZIP do site não altera o Worker no Cloudflare.
+- Sem acesso à chave do usuário, o teste do Gemini é simulado, não prova requisições reais.
+- A busca no catálogo não substitui verificação do rótulo: dados da Open Food Facts são colaborativos e podem estar incompletos.

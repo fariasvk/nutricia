@@ -380,3 +380,39 @@ html.dark .food-alert-unknown { background:#263832; border-color:#4c625b; color:
   .nutricia-welcome .welcome-wash { opacity:1; }
   .nutricia-welcome .welcome-button, .nutricia-welcome.welcome-leaving { transition: none !important; }
 }
+
+
+/* v15 — comportamento antigo do dock: posição fixa no viewport em TODAS as larguras. */
+#bottom-nav.bottom-nav { position:fixed !important; bottom:0 !important; top:auto !important; left:0 !important; right:0 !important; width:100% !important; max-width:none !important; margin:0 !important; transform:none !important; z-index:80; padding-bottom:calc(11px + env(safe-area-inset-bottom)); }
+#bottom-nav .bottom-nav-inner { box-sizing:border-box; width:min(calc(100% - 16px),570px); margin-inline:auto; }
+#app-shell .app-main { padding-bottom:calc(125px + env(safe-area-inset-bottom)); }
+/* v15 — catálogo compacto: vazio até pesquisar, depois no máximo 8 linhas por lote. */
+.catalog-list { display:flex; flex-direction:column; gap:9px; }
+.catalog-entry.catalog-entry-compact { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px 16px; padding:12px 14px; border-radius:14px; }
+.catalog-entry-compact .catalog-copy { min-width:0; }
+.catalog-entry-compact .catalog-name { font-size:.91rem; margin:0 0 4px; }
+.catalog-entry-compact .tiny-source { margin-top:6px; font-size:.65rem; }
+.catalog-entry-compact .catalog-actions { align-items:center; justify-content:flex-end; max-width:315px; }
+.catalog-entry-compact .catalog-btn { padding:7px 10px; min-height:35px; }
+.catalog-entry-compact .catalog-detail-container { grid-column:1/-1; }
+.catalog-unverified { display:inline-block; font-size:.71rem; color:var(--muted); margin-top:6px; }
+.catalog-mini-nutrition { display:flex; flex-wrap:wrap; gap:6px 12px; font-size:.72rem; margin-top:8px; color:var(--ink); }
+.catalog-mini-nutrition span { background:var(--surface-soft); border-radius:9px; padding:4px 7px; }
+.catalog-empty-state { border:1px dashed var(--border); border-radius:14px; padding:24px 18px; text-align:center; display:flex; flex-direction:column; gap:8px; color:var(--muted); font-size:.86rem; line-height:1.5; background:var(--surface-strong); }
+.catalog-empty-state strong { color:var(--ink); font-size:1rem; }
+.catalog-empty-state small { font-size:.75rem; }
+.assistant-cancel { white-space:nowrap; background:var(--surface-soft); color:var(--green-deep); border:1px solid var(--border); flex-shrink:0; }
+.assistant-cancel:not(.hidden) { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:54px; }
+.assistant-cancel:disabled { opacity:.58; cursor:wait; }
+.chat-canceled { opacity:.75; }
+@media(max-width:720px) {
+  .catalog-entry.catalog-entry-compact { display:flex; flex-direction:column; align-items:stretch; }
+  .catalog-entry-compact .catalog-actions { max-width:none; justify-content:flex-start; }
+  .catalog-entry-compact .catalog-btn { font-size:.72rem; padding:8px; }
+  #bottom-nav .bottom-nav-inner { width:calc(100% - 8px); }
+}
+@media(max-width:390px) {
+  #assistant-form { flex-wrap:wrap; }
+  #assistant-question { flex:1 1 100%; }
+  #assistant-submit, #assistant-cancel { flex:1; }
+}

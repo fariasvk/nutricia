@@ -161,12 +161,13 @@ let firebaseConfigured = false;
 let authMode = 'login';
 let introStep = 0;
 let assistantBusy = false;
+let assistantAbortController = null;
 let deferredInstallPrompt = null;
 
 // Metadados estáticos; não entram no banco pessoal, no IAC ou nos prompts de IA automaticamente.
 let catalogItems = null;
 let catalogPromise = null;
-let catalogVisibleCount = 16;
+let catalogVisibleCount = 8;
 let catalogSelectedCode = '';
 let catalogQueryTimer = null;
 let catalogFetchBusy = false;
@@ -223,7 +224,7 @@ function initCatalog() {
     search.addEventListener('input', () => {
       clearTimeout(catalogQueryTimer);
       catalogQueryTimer = setTimeout(() => {
-        catalogVisibleCount = 16;
+        catalogVisibleCount = 8;
         catalogSelectedCode = '';
         renderCatalogResults();
       }, 90);
@@ -245,7 +246,7 @@ function initCatalog() {
     }
   });
   document.getElementById('catalog-more')?.addEventListener('click', () => {
-    catalogVisibleCount += 24;
+    catalogVisibleCount += 8;
     renderCatalogResults();
   });
 }
@@ -254,27 +255,43 @@ function renderCatalogResults() {
   const target = document.getElementById('catalog-list');
   if (!target || !catalogItems) return;
   const q = normalizeCatalogText(document.getElementById('search-db')?.value || '');
-  const found = q ? catalogItems.filter(item => item._search.includes(q)) : catalogItems;
-  const showing = found.slice(0, catalogVisibleCount);
   const counter = document.getElementById('catalog-count');
-  if (counter) counter.textContent = `${found.length} de 299 registros encontrados`;
-  target.innerHTML = showing.length ? showing.map(item => `
-    <article class="catalog-entry" data-catalog-code="${escapeHtml(item.code)}">
+  const more = document.getElementById('catalog-more');
+  // Never dump hundreds of reference-only entries onto the screen.
+  if (!q) {
+    target.innerHTML = `<div class="catalog-empty-state"><strong>O que você procura?</strong><span>Digite o nome, a marca ou o EAN no campo de busca acima. O catálogo tem 299 registros; apenas os resultados pesquisados aparecem aqui.</span><small>Informações nutricionais são mostradas somente quando existirem dados consultados ou corrigidos.</small></div>`;
+    if (counter) counter.textContent = '299 referências · busca sob demanda';
+    if (more) more.classList.add('hidden');
+    return;
+  }
+  const found = catalogItems.filter(item => item._search.includes(q));
+  const showing = found.slice(0, catalogVisibleCount);
+  if (counter) counter.textContent = `${found.length} resultado(s)`;
+  target.innerHTML = showing.length ? showing.map(item => {
+    const personal = state.products.find(p => p.code === item.code);
+    const nutrition = personal?.per100g || {};
+    const format = (key, unit) => typeof nutrition[key] === 'number' && Number.isFinite(nutrition[key])
+      ? `${Number(nutrition[key]).toLocaleString('pt-BR')} ${unit}` : null;
+    const known = [ ['Sódio',format('sodium','mg')], ['Açúcares',format('sugars','g')], ['Fibras',format('fiber','g')] ].filter(([,value])=>value);
+    const facts = known.length
+      ? `<div class="catalog-mini-nutrition">${known.map(([label,value])=>`<span>${label}: <b>${value}</b></span>`).join('')}</div>`
+      : `<span class="catalog-unverified">Sem tabela nutricional verificada</span>`;
+    const label = personal?.userCorrected ? 'Dados corrigidos por você' : personal ? 'Rótulo consultado · conferir embalagem' : 'Referência cadastral';
+    return `<article class="catalog-entry catalog-entry-compact" data-catalog-code="${escapeHtml(item.code)}">
       <div class="catalog-copy">
         <p class="catalog-name">${escapeHtml(item.name)}</p>
-        ${state.products.some(p => p.code === item.code && p.userCorrected) ? '<span class="tiny-source">Sua correção salva</span>' : ''}
-        <p class="muted text-xs">${escapeHtml(item.brand)} · ${escapeHtml(item.category)} · ${escapeHtml(item.package)}</p>
-        <p class="muted text-xs font-mono">EAN ${escapeHtml(item.code)}</p>
+        <p class="muted text-xs">${escapeHtml(item.brand || 'Marca não informada')} · ${escapeHtml(item.package || 'Embalagem não informada')} · EAN ${escapeHtml(item.code)}</p>
+        <span class="tiny-source">${label}</span>
+        ${facts}
       </div>
       <div class="catalog-actions">
         <button type="button" class="btn btn-secondary catalog-btn" data-catalog-detail="${escapeHtml(item.code)}" aria-expanded="${catalogSelectedCode === item.code}">Detalhes</button>
-        <button type="button" class="btn btn-outline catalog-btn" data-catalog-fetch="${escapeHtml(item.code)}">Buscar nutrientes</button>
+        <button type="button" class="btn btn-outline catalog-btn" data-catalog-fetch="${escapeHtml(item.code)}">${personal ? 'Atualizar rótulo' : 'Buscar nutrientes'}</button>
         <button type="button" class="btn btn-quiet catalog-btn" data-catalog-edit="${escapeHtml(item.code)}">Corrigir dados</button>
       </div>
       <div class="catalog-detail-container" data-catalog-detail-container="${escapeHtml(item.code)}"></div>
-    </article>`).join('')
-    : '<p class="muted text-sm p-4">Nenhum item encontrado no catálogo. Tente outro nome, marca ou EAN.</p>';
-  const more = document.getElementById('catalog-more');
+    </article>`;
+  }).join('') : `<p class="catalog-empty-state">Nenhum produto encontrado. Experimente outro nome, marca ou EAN.</p>`;
   if (more) more.classList.toggle('hidden', found.length <= catalogVisibleCount);
   renderCatalogDetails();
 }
@@ -468,6 +485,7 @@ if (identity === 'Visitante') {
   
   document.getElementById('application').classList.remove('hidden');
   document.getElementById('application').classList.add('route-enter-right');
+  window.setTimeout(() => document.getElementById('application')?.classList.remove('route-enter-right'), 610);
   const greeting = document.getElementById('welcome-user');
   if (greeting) {
     const first = String(identity || 'Visitante').split('@')[0];
@@ -483,6 +501,7 @@ function showAuthScreen() {
   hideScreens();
   document.getElementById('auth-screen').classList.remove('hidden');
   document.getElementById('auth-screen').classList.add('route-enter-right');
+  window.setTimeout(() => document.getElementById('auth-screen')?.classList.remove('route-enter-right'), 610);
 }
 
 function isFirebaseConfigReady() {
@@ -878,7 +897,7 @@ function initGlobalSearch() {
     homeSearch.blur();
     showTab('banco');
     renderProductsTable();
-    catalogVisibleCount = 16;
+    catalogVisibleCount = 8;
     renderCatalogResults();
   });
   document.getElementById('search-db')?.addEventListener('input', renderProductsTable);
@@ -1915,7 +1934,23 @@ function getEvidenceProducts(productCodes = null) {
 function initAssistant() {
   const form = document.getElementById('assistant-form');
   const questionBox = document.getElementById('assistant-question');
+  const submit = document.getElementById('assistant-submit');
+  const cancel = document.getElementById('assistant-cancel');
+  if (!form || !questionBox || !submit || !cancel) return;
 
+  const setBusy = busy => {
+    assistantBusy = busy;
+    submit.disabled = busy;
+    cancel.classList.toggle('hidden', !busy);
+    cancel.disabled = !busy;
+    questionBox.setAttribute('aria-busy', busy ? 'true' : 'false');
+  };
+  cancel.addEventListener('click', () => {
+    if (!assistantBusy || !assistantAbortController) return;
+    assistantAbortController.abort();
+    // Do not reset the UI here: finally of the interrupted request owns cleanup.
+    cancel.disabled = true;
+  });
   questionBox.addEventListener('keydown', event => {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
       event.preventDefault();
@@ -1926,68 +1961,57 @@ function initAssistant() {
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (assistantBusy) return;
-    const questionBox = document.getElementById('assistant-question');
     const question = questionBox.value.trim();
     if (!question) return;
-    assistantBusy = true;
+    const controller = new AbortController();
+    assistantAbortController = controller;
+    setBusy(true);
     addChatBubble(question, 'user');
     questionBox.value = '';
-const loading = addChatBubble('', 'assistant');
-const typing = loading.querySelector('.chat-text');
-
-typing.classList.add('typing-indicator');
-typing.innerHTML = `
-  <span style="display:inline-block;background:#888;width:8px;height:8px;border-radius:50%"></span>
-  <span style="display:inline-block;background:#888;width:8px;height:8px;border-radius:50%"></span>
-  <span style="display:inline-block;background:#888;width:8px;height:8px;border-radius:50%"></span>
-`;
-    const submit = document.getElementById('assistant-submit');
-    submit.disabled = true;
-
-
-try {
-  const slowNotice = setTimeout(() => {
-    const node = loading.querySelector('.chat-text');
-    if (node && node.classList.contains('typing-indicator')) {
-      node.classList.remove('typing-indicator');
-      node.textContent = 'A IA ainda está processando. Se o serviço estiver lento, pode levar alguns segundos...';
+    const loading = addChatBubble('', 'assistant');
+    const typing = loading.querySelector('.chat-text');
+    typing.classList.add('typing-indicator');
+    typing.innerHTML = '<span></span><span></span><span></span>';
+    let slowNotice;
+    try {
+      slowNotice = setTimeout(() => {
+        if (controller.signal.aborted) return;
+        if (typing.classList.contains('typing-indicator')) {
+          typing.classList.remove('typing-indicator');
+          typing.textContent = 'A IA ainda está processando. Você pode cancelar a resposta a qualquer momento.';
+        }
+      }, 12000);
+      const answer = await askNutricia(question, null, controller.signal);
+      if (controller.signal.aborted) throw new DOMException('Interrompido', 'AbortError');
+      typing.classList.remove('typing-indicator');
+      typing.textContent = formatNutriciaAnswer(answer.text);
+      if (answer.source) {
+        const meta = document.createElement('div');
+        meta.className = 'chat-meta';
+        meta.textContent = answer.source;
+        loading.appendChild(meta);
+      }
+    } catch (error) {
+      typing.classList.remove('typing-indicator');
+      if (controller.signal.aborted || error?.name === 'AbortError') {
+        typing.textContent = 'Resposta cancelada.';
+        loading.classList.add('chat-canceled');
+      } else {
+        console.warn('Falha na NutricIA:', error);
+        typing.textContent = error?.message || 'Não consegui consultar a IA agora. Tente novamente mais tarde.';
+      }
+    } finally {
+      clearTimeout(slowNotice);
+      if (assistantAbortController === controller) assistantAbortController = null;
+      setBusy(false);
+      const list = document.getElementById('assistant-messages');
+      if (list) list.scrollTop = list.scrollHeight;
+      // Sem foco automático; no celular, o teclado só abre por toque.
     }
-  }, 12000);
-  let answer;
-  try { answer = await askNutricia(question); }
-  finally { clearTimeout(slowNotice); }
-  loading.querySelector('.chat-text').classList.remove('typing-indicator');
-loading.querySelector('.chat-text').textContent = formatNutriciaAnswer(answer.text);
-
-  if (answer.source) {
-    const meta = document.createElement('div');
-    meta.className = 'chat-meta';
-    meta.textContent = answer.source;
-    loading.appendChild(meta);
-  }
-
-} catch (error) {
-  console.error('Erro na NutricIA:', error);
-  loading.querySelector('.chat-text').classList.remove('typing-indicator');
-
-  loading.querySelector('.chat-text').textContent =
-    error.message || 'Não consegui consultar a assistente agora. Tente novamente mais tarde.';
-
-  } finally {
-  assistantBusy = false;
-  submit.disabled = false;
-
-  const list = document.getElementById('assistant-messages');
-  list.scrollTop = list.scrollHeight;
-  // Sem foco automático: somente o toque voluntário no campo abre o teclado.
-}
-});
-
-
+  });
   document.querySelectorAll('.question-suggestion').forEach(button => {
     button.addEventListener('click', () => {
-      document.getElementById('assistant-question').value = button.dataset.question;
-      // Sugestões preenchem o campo sem levantar o teclado do smartphone.
+      questionBox.value = button.dataset.question;
     });
   });
 }
@@ -2015,14 +2039,18 @@ function formatNutriciaAnswer(text) {
     .trim();
 }
 
-async function askNutricia(question, productCodes = null) {
+async function askNutricia(question, productCodes = null, externalSignal = null) {
   const allProducts = getEvidenceProducts(productCodes);
   const q = normalizeCatalogText(question);
   const mentionsProduct = /produto|marca|compar|rotulo|rótulo|sodio|sódio|fibra|acucar|açúcar|nutriente|ingrediente|alergen|gluten|glúten|lactose|proteina|proteína|caloria|gordura|cadastrad|banco/i.test(q) || allProducts.some(p => normalizeCatalogText(p.name).split(' ').some(w => w.length > 4 && q.includes(w)));
   const products = mentionsProduct ? allProducts.slice(0, 8) : [];
   if (NUTRICIA_AI_ENDPOINT) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 48000);
+    let timedOut = false;
+    const forwardAbort = () => controller.abort();
+    if (externalSignal?.aborted) controller.abort();
+    else externalSignal?.addEventListener('abort', forwardAbort, {once:true});
+    const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, 48000);
     let response;
     try {
       response = await fetch(NUTRICIA_AI_ENDPOINT, {
@@ -2037,17 +2065,21 @@ async function askNutricia(question, productCodes = null) {
         })
       });
     } catch (error) {
-      if (error.name === 'AbortError') throw new Error('O serviço de IA não respondeu dentro de 48 segundos. Confira a disponibilidade do Gemini no Cloudflare e tente novamente.');
+      if (externalSignal?.aborted) throw new DOMException('Resposta cancelada.', 'AbortError');
+      if (timedOut) throw new Error('A IA ultrapassou 48 segundos. Use Cancelar se não quiser continuar aguardando.');
       throw new Error('Não foi possível conectar à IA. Confira a internet e a configuração do Cloudflare Worker.');
     } finally {
       clearTimeout(timeoutId);
+      externalSignal?.removeEventListener('abort', forwardAbort);
     }
-   
+    if (externalSignal?.aborted) throw new DOMException('Resposta cancelada.', 'AbortError');
+
 if (!response.ok) {
       let message = '';
       try { message = String((await response.json())?.error || '').slice(0, 280); }
       catch (_) {}
       if (response.status === 429) throw new Error(message || 'Limite de perguntas atingido. Tente novamente mais tarde.');
+      if (/gemini-2\.5-flash-lite.*(?:não encontrado|nao encontrado)/i.test(message)) throw new Error('Seu Cloudflare ainda usa a configuração antiga do Gemini 2.5. Publique o Worker v15 e altere GEMINI_MODEL para gemini-3.5-flash-lite.');
       if (response.status === 503) throw new Error(message || 'Gemini temporariamente indisponível. O aplicativo continua funcionando sem a resposta da IA.');
       if (response.status === 504) throw new Error(message || 'O Gemini não respondeu no tempo esperado. Tente novamente.');
       if (response.status === 502) throw new Error(message || 'A comunicação com o Gemini falhou mesmo após novas tentativas. Tente novamente mais tarde.');

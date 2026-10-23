@@ -1,11 +1,20 @@
-/* NutricIA v14 — evita conservar CSS/ícones antigos após um novo deploy. */
-const CACHE_NAME = 'nutricia-cache-v14-inline-styles';
+/* NutricIA v15 — evita conservar CSS/ícones antigos após um novo deploy. */
+const CACHE_NAME = 'nutricia-cache-v15-catalog-dock-chat';
 const ASSETS = [
-  './', './index.html', './visual.css?v=14', './app.js?v=14',
-  './manifest.json?v=14', './catalogo_299.json', './nutricia-hero-glass.webp',
-  './nutricia-brand-v14.png', './nutricia-brand-v14-small.png',
-  './nutricia-icon-v14-192.png','./nutricia-icon-v14-512.png',
-  './nutricia-icon-v14-maskable-512.png', './apple-touch-icon-v14.png', './favicon-v14.png'
+  './',
+  './index.html',
+  './visual.css?v=15',
+  './app.js?v=15',
+  './manifest.json?v=15',
+  './catalogo_299.json',
+  './nutricia-hero-glass.webp',
+  './nutricia-brand-v15.png',
+  './nutricia-brand-v15-small.png',
+  './nutricia-icon-v15-192.png',
+  './nutricia-icon-v15-512.png',
+  './nutricia-icon-v15-maskable-512.png',
+  './apple-touch-icon-v15.png',
+  './favicon-v15.png',
 ];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
@@ -36,9 +45,8 @@ self.addEventListener('fetch', event => {
     const cached = await cache.match(event.request);
     // Always prefer fresh HTML, styles, scripts, icons, and manifest so that
     // uploading a new version cannot leave the interface half-updated.
-    const versioned = url.searchParams.has('v') || /-v14\./.test(url.pathname) || /-v14-/.test(url.pathname);
-    const networkFirst = event.request.mode === 'navigate' ||
-      (!versioned && /\.(?:html|css|js)$/.test(url.pathname));
+    const versioned = url.searchParams.has('v') || /-v15\./.test(url.pathname) || /-v15-/.test(url.pathname);
+    const networkFirst = event.request.mode === 'navigate' || /\.(?:html|css|js|json|png|webp)$/.test(url.pathname);
     if (!networkFirst && cached) return cached;
     try {
       const response = await fetch(event.request, {cache:networkFirst ? 'no-cache' : 'default'});
