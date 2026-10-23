@@ -515,8 +515,19 @@ function initProfilePicker() {
     }
   }
 
-  button.addEventListener('click', toggleProfileMenu);
-  addButton.addEventListener('click', toggleProfileMenu);
+  
+button.addEventListener('click', toggleProfileMenu);
+
+addButton.addEventListener('click', () => {
+  mainSearch.value = '';
+  renderProfileOptions('', 'profile-options-main');
+  mainSearch.focus();
+  mainSearch.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center'
+  });
+});
+
 
 
   search.addEventListener('input', () => renderProfileOptions(search.value, 'profile-options'));
