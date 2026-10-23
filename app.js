@@ -182,7 +182,7 @@ async function loadCatalog() {
   if (catalogItems) return catalogItems;
   if (catalogPromise) return catalogPromise;
   const status = document.getElementById('catalog-status');
-  if (status) status.textContent = 'Carregando catálogo local...';
+  if (status) { status.textContent = ''; status.classList.add('hidden'); }
   catalogPromise = (async () => {
     const response = await fetch('./catalogo_299.json');
     if (!response.ok) throw new Error(`Catálogo não disponível (HTTP ${response.status})`);
@@ -205,13 +205,13 @@ async function loadCatalog() {
       item.brand = personal.brand;
       item._search = normalizeCatalogText(`${item.code} ${item.name} ${item.brand} ${item.category} ${item.package} ${item.variant}`);
     }
-    if (status) status.textContent = '299 registros de referência. Sem valores nutricionais ou alergênicos confirmados.';
+    if (status) { status.textContent = ''; status.classList.add('hidden'); }
     renderCatalogResults();
     refreshCompareFinders();
     renderComparisonTable();
     return catalogItems;
   })().catch(error => {
-    if (status) status.textContent = 'Não foi possível abrir o catálogo. Confira se catalogo_299.json foi publicado com o aplicativo.';
+    if (status) { status.textContent = 'Não foi possível abrir o catálogo. Confira se catalogo_299.json foi publicado com o aplicativo.'; status.classList.remove('hidden'); }
     console.warn('Catálogo local indisponível:', error);
     return null;
   }).finally(() => { catalogPromise = null; });
@@ -259,14 +259,14 @@ function renderCatalogResults() {
   const more = document.getElementById('catalog-more');
   // Never dump hundreds of reference-only entries onto the screen.
   if (!q) {
-    target.innerHTML = `<div class="catalog-empty-state"><strong>O que você procura?</strong><span>Digite o nome, a marca ou o EAN no campo de busca acima. O catálogo tem 299 registros; apenas os resultados pesquisados aparecem aqui.</span><small>Informações nutricionais são mostradas somente quando existirem dados consultados ou corrigidos.</small></div>`;
-    if (counter) counter.textContent = '299 referências · busca sob demanda';
+    target.innerHTML = `<div class="catalog-empty-state"><strong>Encontre um alimento</strong><span>Digite o nome, a marca ou o EAN na busca acima.</span></div>`;
+    if (counter) { counter.textContent = ''; counter.classList.add('hidden'); }
     if (more) more.classList.add('hidden');
     return;
   }
   const found = catalogItems.filter(item => item._search.includes(q));
   const showing = found.slice(0, catalogVisibleCount);
-  if (counter) counter.textContent = `${found.length} resultado(s)`;
+  if (counter) { counter.textContent = `${found.length} resultado${found.length === 1 ? '' : 's'}`; counter.classList.remove('hidden'); }
   target.innerHTML = showing.length ? showing.map(item => {
     const personal = state.products.find(p => p.code === item.code);
     const nutrition = personal?.per100g || {};
@@ -336,7 +336,7 @@ async function queryCatalogNutrition(code) {
   catalogFetchBusy = true;
   const buttons = [...document.querySelectorAll('[data-catalog-fetch]')];
   buttons.forEach(button => { button.disabled = true; });
-  if (status) status.textContent = `Consultando dados nutricionais de ${item.name}...`;
+  if (status) { status.textContent = `Consultando dados nutricionais de ${item.name}...`; status.classList.remove('hidden'); }
   try {
     if (state.products.some(p => p.code === code && p.userCorrected) &&
         !confirm('Você corrigiu este produto. Buscar nutrientes na fonte externa pode substituir seus dados pessoais. Continuar?')) return;

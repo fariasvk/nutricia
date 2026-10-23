@@ -899,16 +899,16 @@ html.dark .food-alert-unknown { background:#263832; border-color:#4c625b; color:
       <section id="tab-banco" class="tab-content hidden">
         <div class="surface">
           <div class="flex flex-wrap items-start justify-between gap-3 mb-5">
-            <div><h1 class="section-title mb-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9h18l-2 11H5L3 9Z M8 9l4-5 4 5M8 13v4m4-4v4m4-4v4"/></svg>Banco de alimentos</h1><p class="muted text-sm">Pesquise por nome, marca ou EAN. As 299 referências não são carregadas em uma lista gigante.</p></div>
+            <div><h1 class="section-title mb-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9h18l-2 11H5L3 9Z M8 9l4-5 4 5M8 13v4m4-4v4m4-4v4"/></svg>Banco de alimentos</h1><p class="muted text-sm">Encontre alimentos pelo nome, marca ou código.</p></div>
             <input id="search-db" class="field w-full sm:max-w-xs" type="search" placeholder="Pesquisar no catálogo: nome, marca ou EAN" autocomplete="off">
           </div>
           <section class="catalog-section soft p-4 mb-5" aria-label="Catálogo de alimentos pré-cadastrados">
             <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
-              <div><h2 class="font-black text-base">Catálogo de referência — 299 produtos</h2>
-                <p class="muted text-xs mt-1">Busca local rápida. A lista só aparece quando você pesquisa. Produtos sem rótulo têm apenas dados cadastrais; use Buscar nutrientes ou Corrigir dados para completar as informações.</p></div>
-              <span id="catalog-count" class="tiny-source">299 registros</span>
+              <div><h2 class="font-black text-base">Catálogo de referência · 299 produtos</h2>
+                <p class="muted text-xs mt-1">Pesquise e consulte os dados disponíveis de cada alimento.</p></div>
+              <span id="catalog-count" class="tiny-source hidden" aria-live="polite"></span>
             </div>
-            <p id="catalog-status" class="muted text-xs mb-3" aria-live="polite">299 referências com EAN e dados cadastrais. Valores nutricionais só aparecem após consulta ou correção.</p>
+            <p id="catalog-status" class="muted text-xs mb-3 hidden" aria-live="polite"></p>
             <div id="catalog-list" class="catalog-list" aria-live="off"></div>
             <button id="catalog-more" class="btn btn-outline mt-3 w-full hidden" type="button">Mostrar mais 8 resultados</button>
           </section>
@@ -1154,6 +1154,6 @@ html.dark .food-alert-unknown { background:#263832; border-color:#4c625b; color:
     </nav>
   </div>
 
-  <script src="./app.js?v=15"></script>
+  <script src="./app.js?v=15.1"></script>
 </body>
 </html>

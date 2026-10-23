@@ -1,10 +1,10 @@
 /* NutricIA v15 — evita conservar CSS/ícones antigos após um novo deploy. */
-const CACHE_NAME = 'nutricia-cache-v15-catalog-dock-chat';
+const CACHE_NAME = 'nutricia-cache-v15-1-catalog-clean';
 const ASSETS = [
   './',
   './index.html',
   './visual.css?v=15',
-  './app.js?v=15',
+  './app.js?v=15.1',
   './manifest.json?v=15',
   './catalogo_299.json',
   './nutricia-hero-glass.webp',
