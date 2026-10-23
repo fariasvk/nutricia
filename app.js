@@ -608,24 +608,72 @@ renderProfileOptions(menuSearch?.value || '', 'profile-options');
   });
 }
 
+
 function updateProfileHighlights() {
-  const selected = state.activeProfiles || ['geral'];
+  const selected = state.activeProfiles?.length
+    ? state.activeProfiles
+    : ['geral'];
 
-  const profiles = selected.map(key =>
-    PROFILE_MAP[key]
-  ).filter(Boolean);
+  const profiles = selected
+    .map(key => PROFILE_MAP[key])
+    .filter(Boolean);
 
-  const names = profiles.map(profile => profile.label).join(' + ');
-  const descriptions = profiles.map(profile => profile.text).join(' ');
+  const names = profiles.map(p => p.label).join(' + ');
+  const descriptions = profiles.map(p => p.text).join(' ');
 
-  document.getElementById('profile-short-label').textContent =
-    `Perfis: ${names}`;
-
+  document.getElementById('profile-short-label').textContent = `Perfis: ${names}`;
   document.getElementById('profile-badge').textContent = names;
   document.getElementById('profile-details').textContent = descriptions;
   document.getElementById('active-profile-name').textContent = names;
   document.getElementById('profile-main-title').textContent = names;
   document.getElementById('profile-main-desc').textContent = descriptions;
+
+  const list = document.getElementById('selected-profiles-list');
+
+  if (list) {
+    list.innerHTML = selected.map(key => {
+      const profile = PROFILE_MAP[key];
+      if (!profile) return '';
+
+      return `
+        <div class="health-card flex items-center justify-between gap-3">
+          <div>
+            <strong class="block">${escapeHtml(profile.label)}</strong>
+            <span class="muted text-xs">${escapeHtml(profile.text)}</span>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-outline"
+            data-remove-profile="${escapeHtml(key)}"
+            aria-label="Remover ${escapeHtml(profile.label)}"
+          >✕</button>
+        </div>
+      `;
+    }).join('');
+
+    list.querySelectorAll('[data-remove-profile]').forEach(button => {
+      button.addEventListener('click', () => {
+        const key = button.dataset.removeProfile;
+
+        state.activeProfiles = state.activeProfiles.filter(p => p !== key);
+
+        if (state.activeProfiles.length === 0) {
+          state.activeProfiles = ['geral'];
+        }
+
+        state.activeProfile = state.activeProfiles[0];
+
+        updateProfileHighlights();
+
+        const mainSearch = document.getElementById('profile-search-main');
+        const menuSearch = document.getElementById('profile-search');
+
+        renderProfileOptions(mainSearch?.value || '', 'profile-options-main');
+        renderProfileOptions(menuSearch?.value || '', 'profile-options');
+      });
+    });
+  }
 
   renderComparisonTable();
 }
