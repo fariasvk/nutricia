@@ -171,6 +171,7 @@ let catalogSelectedCode = '';
 let catalogQueryTimer = null;
 let catalogFetchBusy = false;
 let scannerLibraryPromise = null;
+let scannerStarting = false;
 
 function normalizeCatalogText(text) {
   return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -907,7 +908,17 @@ function initManualForms() {
       setScannerFeedback('Digite o código de barras antes de buscar.', 'warning');
       return;
     }
-    fetchProductFromOFF(code);
+    lookupScannedBarcode(code);
+  });
+
+  document.getElementById('btn-restart-scanner')?.addEventListener('click', async () => {
+    await stopCameraScanner();
+    initCameraScanner();
+  });
+  document.getElementById('barcode-photo')?.addEventListener('change', async event => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    await scanBarcodePhoto(file);
   });
 
   document.getElementById('btn-save-manual').addEventListener('click', () => {
@@ -1010,80 +1021,85 @@ function initWeightLab() {
   });
 }
 
+// Leitor otimizado para códigos impressos em embalagens: EAN, UPC e ITF.
+function supportedBarcodeFormats() {
+  const list = [
+    'EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'ITF',
+    'CODE_128', 'CODE_39'
+  ];
+  return list.map(name => Html5QrcodeSupportedFormats[name]).filter(value => value !== undefined);
+}
+
+// Bibliotecas carregadas sob demanda; um CDN alternativo evita falha em rede escolar.
 function loadScannerLibrary() {
   if (typeof Html5Qrcode !== 'undefined' && typeof Html5QrcodeSupportedFormats !== 'undefined') {
     return Promise.resolve(true);
   }
   if (scannerLibraryPromise) return scannerLibraryPromise;
-  scannerLibraryPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/html5-qrcode';
-    script.async = true;
-    const timeout = setTimeout(() => {
-      script.remove();
-      reject(new Error('O leitor demorou demais para carregar.'));
-    }, 8500);
-    script.onload = () => { clearTimeout(timeout); resolve(true); };
-    script.onerror = () => { clearTimeout(timeout); reject(new Error('Não foi possível baixar o leitor.')); };
-    document.head.appendChild(script);
-  }).finally(() => { scannerLibraryPromise = null; });
+  const sources = [
+    'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
+    'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js'
+  ];
+  scannerLibraryPromise = (async () => {
+    for (const src of sources) {
+      try {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = src;
+          script.async = true;
+          const timeout = setTimeout(() => {
+            script.remove();
+            reject(new Error('Tempo esgotado ao carregar o leitor.'));
+          }, 9000);
+          script.onload = () => { clearTimeout(timeout); resolve(); };
+          script.onerror = () => { clearTimeout(timeout); script.remove(); reject(new Error('Falha no CDN.')); };
+          document.head.appendChild(script);
+        });
+        if (typeof Html5Qrcode !== 'undefined' && typeof Html5QrcodeSupportedFormats !== 'undefined') return true;
+      } catch (error) { console.warn('Biblioteca do leitor:', error.message); }
+    }
+    throw new Error('Não foi possível carregar o leitor em nenhuma fonte.');
+  })().finally(() => { scannerLibraryPromise = null; });
   return scannerLibraryPromise;
 }
 
 async function initCameraScanner() {
-  if (state.scannerInstance || state.scanning) return;
+  if (state.scannerInstance || scannerStarting || state.scanning) return;
   if (!window.isSecureContext && location.hostname !== 'localhost') {
-    setScannerFeedback('A câmera exige conexão HTTPS. Você pode digitar o código abaixo.', 'warning');
+    setScannerFeedback('A câmera exige HTTPS. Você pode digitar ou fotografar o código abaixo.', 'warning');
     return;
   }
-  if (typeof Html5Qrcode === 'undefined') {
-    setScannerFeedback('Preparando leitor de códigos... Você já pode digitar o EAN abaixo.', 'info');
-    try { await loadScannerLibrary(); }
-    catch (_) {
-      setScannerFeedback('A câmera não pôde ser preparada. Use o código digitado.', 'warning');
-      return;
-    }
-  }
-  if (state.activeTab !== 'scanner') return;
-  if (typeof Html5Qrcode === 'undefined' || typeof Html5QrcodeSupportedFormats === 'undefined') {
-    setScannerFeedback('O leitor de códigos não está disponível. Digite o EAN.', 'warning');
-    return;
-  }
-  const reader = document.getElementById('reader');
-  if (!reader) return;
-  setScannerFeedback('Solicitando acesso à câmera...', 'info');
+  scannerStarting = true;
   try {
+    if (typeof Html5Qrcode === 'undefined') {
+      setScannerFeedback('Preparando o leitor de códigos...', 'info');
+      await loadScannerLibrary();
+    }
+    if (state.activeTab !== 'scanner' || state.scannerInstance) return;
+    if (!document.getElementById('reader')) return;
+    setScannerFeedback('Solicitando a câmera traseira...', 'info');
     const scanner = new Html5Qrcode('reader', {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A
-      ],
-      verbose: false
+      formatsToSupport: supportedBarcodeFormats(),
+      verbose: false,
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }
     });
     state.scannerInstance = scanner;
-    const scanConfig = {
-      fps: 10,
-      aspectRatio: 1.7778,
-      qrbox: (width, height) => ({
-        width: Math.min(Math.max(160, Math.round(width * .84)), Math.max(160, width - 12)),
-        height: Math.min(125, Math.max(75, Math.round(height * .35)))
-      })
-    };
+    // Não restringimos o reconhecimento à pequena faixa de 125 px do código anterior.
+    // A proporção nativa facilita foco e leitura de embalagens compridas.
+    const scanConfig = { fps: 12, disableFlip: true };
     const found = async decodedText => {
-      const now = Date.now();
-      if (state.scanning || (state.lastScanCode === decodedText && now - state.lastScanAt < 8000)) return;
+      const cleanCode = String(decodedText || '').replace(/\s+/g, '');
+      if (!/^\d{8,14}$/.test(cleanCode) || state.scanning) return;
+      if (state.lastScanCode === cleanCode && Date.now() - state.lastScanAt < 1200) return;
       state.scanning = true;
-      state.lastScanCode = decodedText;
-      state.lastScanAt = now;
+      state.lastScanCode = cleanCode;
+      state.lastScanAt = Date.now();
       const field = document.getElementById('manual-barcode');
-      if (field) field.value = decodedText;
+      if (field) field.value = cleanCode;
+      setScannerFeedback(`Código ${cleanCode} reconhecido! Procurando o produto...`, 'success');
       try {
-        const product = await fetchProductFromOFF(decodedText);
-        if (product) {
-          await stopCameraScanner();
-          setScannerFeedback('Produto localizado. Para ler outro código, abra novamente o scanner.', 'success');
-        }
+        await stopCameraScanner(); // interrompe a câmera ANTES da consulta lenta à internet
+        await lookupScannedBarcode(cleanCode);
       } finally {
         state.scanning = false;
       }
@@ -1096,12 +1112,17 @@ async function initCameraScanner() {
       if (!rear) throw firstError;
       await scanner.start(rear.id, scanConfig, found, () => {});
     }
-    setScannerFeedback('Câmera ativa. Enquadre o código de barras e evite reflexos.', 'success');
+    if (state.activeTab !== 'scanner') {
+      await stopCameraScanner();
+      return;
+    }
+    setScannerFeedback('Câmera ativa! Centralize o código de barras, sem reflexos, e ajuste a distância até ficar nítido.', 'success');
   } catch (error) {
-    try { await state.scannerInstance?.clear(); } catch (_) {}
-    state.scannerInstance = null;
-    console.warn('Não foi possível iniciar a câmera:', error);
-    setScannerFeedback('Não foi possível acessar a câmera. Confira a permissão do navegador ou digite o código.', 'warning');
+    console.warn('Não foi possível preparar o scanner:', error);
+    await stopCameraScanner();
+    setScannerFeedback('O leitor não conseguiu iniciar. Tente fotografar o código ou digitar o número.', 'warning');
+  } finally {
+    scannerStarting = false;
   }
 }
 
@@ -1111,8 +1132,75 @@ async function stopCameraScanner() {
   state.scannerInstance = null;
   try {
     if (scanner.isScanning) await scanner.stop();
-    try { await scanner.clear(); } catch (_) {}
-  } catch (_) {}
+  } catch (error) { console.warn('Falha ao parar a câmera:', error); }
+  try { await scanner.clear(); } catch (_) {}
+}
+
+function localCatalogProduct(item) {
+  return {
+    code: item.code,
+    name: item.name,
+    brand: item.brand || 'Marca não informada',
+    source: 'Catálogo local (apenas identificação; nutrientes não verificados)',
+    queryDate: new Date().toLocaleDateString('pt-BR'),
+    image: null,
+    per100g: { energy: 'Não disponível', carbs: 'Não disponível', sugars: 'Não disponível', proteins: 'Não disponível', fats: 'Não disponível', fiber: 'Não disponível', sodium: 'Não disponível' }
+  };
+}
+
+async function lookupScannedBarcode(code) {
+  // Primeiro mostra imediatamente o registro local disponível, sem inventar nutrientes.
+  const existing = state.products.find(item => String(item.code) === code && !item.demo);
+  let localItem = null;
+  if (existing) {
+    displayScanResult(existing);
+    setScannerFeedback(`Código reconhecido: ${existing.name}. Confirmando dados na base pública...`, 'info');
+  } else {
+    await loadCatalog();
+    localItem = catalogItems?.find(item => item.code === code);
+    if (localItem) {
+      displayScanResult(localCatalogProduct(localItem));
+      setScannerFeedback(`Código reconhecido: ${localItem.name} (catálogo local). Buscando nutrientes verificados...`, 'info');
+    }
+  }
+  const product = await fetchProductFromOFF(code);
+  if (product) return product;
+  if (localItem || existing) {
+    const name = localItem?.name || existing.name;
+    setScannerFeedback(`Código ${code} lido! ${name} identificado. A base externa não retornou dados atualizados; confira o rótulo.`, 'warning');
+  } else {
+    setScannerFeedback(`Código ${code} lido corretamente, mas o produto não foi encontrado na base. Você pode cadastrar o rótulo manualmente.`, 'warning');
+  }
+  return null;
+}
+
+async function scanBarcodePhoto(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    setScannerFeedback('Escolha uma foto do código de barras.', 'warning');
+    return;
+  }
+  try {
+    setScannerFeedback('Analisando a foto do código...', 'info');
+    await stopCameraScanner();
+    await loadScannerLibrary();
+    if (state.activeTab !== 'scanner') return;
+    const scanner = new Html5Qrcode('reader', {
+      formatsToSupport: supportedBarcodeFormats(),
+      verbose: false,
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    });
+    let code;
+    try { code = await scanner.scanFile(file, false); }
+    finally { try { await scanner.clear(); } catch (_) {} }
+    const input = document.getElementById('manual-barcode');
+    if (input) input.value = code;
+    setScannerFeedback(`Código ${code} reconhecido na foto!`, 'success');
+    await lookupScannedBarcode(code);
+  } catch (error) {
+    console.warn('Leitura da foto:', error);
+    setScannerFeedback('Não reconheci o código na foto. Tire outra imagem nítida, com o código inteiro e sem reflexos, ou digite o número.', 'warning');
+  }
 }
 
 async function fetchProductFromOFF(barcode) {
@@ -1617,7 +1705,16 @@ typing.innerHTML = `
 
 
 try {
-  const answer = await askNutricia(question);
+  const slowNotice = setTimeout(() => {
+    const node = loading.querySelector('.chat-text');
+    if (node && node.classList.contains('typing-indicator')) {
+      node.classList.remove('typing-indicator');
+      node.textContent = 'A IA ainda está processando. Se o serviço estiver lento, pode levar alguns segundos...';
+    }
+  }, 12000);
+  let answer;
+  try { answer = await askNutricia(question); }
+  finally { clearTimeout(slowNotice); }
   loading.querySelector('.chat-text').classList.remove('typing-indicator');
 loading.querySelector('.chat-text').textContent = formatNutriciaAnswer(answer.text);
 
@@ -1678,10 +1775,13 @@ function formatNutriciaAnswer(text) {
 }
 
 async function askNutricia(question, productCodes = null) {
-  const products = getEvidenceProducts(productCodes);
+  const allProducts = getEvidenceProducts(productCodes);
+  const q = normalizeCatalogText(question);
+  const mentionsProduct = /produto|marca|compar|rotulo|rótulo|sodio|sódio|fibra|acucar|açúcar|nutriente|ingrediente|alergen|gluten|glúten|lactose|proteina|proteína|caloria|gordura|cadastrad|banco/i.test(q) || allProducts.some(p => normalizeCatalogText(p.name).split(' ').some(w => w.length > 4 && q.includes(w)));
+  const products = mentionsProduct ? allProducts.slice(0, 8) : [];
   if (NUTRICIA_AI_ENDPOINT) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 18000);
+    const timeoutId = setTimeout(() => controller.abort(), 35000);
     let response;
     try {
       response = await fetch(NUTRICIA_AI_ENDPOINT, {
@@ -1696,32 +1796,32 @@ async function askNutricia(question, productCodes = null) {
         })
       });
     } catch (error) {
-      if (error.name === 'AbortError') throw new Error('A resposta da IA demorou demais. Tente uma pergunta mais curta.');
-      throw error;
+      if (error.name === 'AbortError') throw new Error('O serviço de IA não respondeu dentro de 35 segundos. Confira a disponibilidade do Gemini no Cloudflare e tente novamente.');
+      throw new Error('Não foi possível conectar à IA. Confira a internet e a configuração do Cloudflare Worker.');
     } finally {
       clearTimeout(timeoutId);
     }
    
 if (!response.ok) {
-  if (response.status === 429) {
-    throw new Error('A NutricIA atingiu o limite gratuito de perguntas. Aguarde a renovação da cota para continuar.');
-  }
-
-  if (response.status === 503) {
-    throw new Error('A inteligência artificial está temporariamente indisponível.');
-  }
-
-  throw new Error(`Erro no serviço de IA: ${response.status}`);
-}
-
-    const data = await response.json();
-    if (!data || typeof data.answer !== 'string' || !data.answer.trim()) throw new Error('Resposta vazia.');
+      let message = '';
+      try { message = String((await response.json())?.error || '').slice(0, 280); }
+      catch (_) {}
+      if (response.status === 429) throw new Error(message || 'Limite de perguntas atingido. Tente novamente mais tarde.');
+      if (response.status === 503) throw new Error(message || 'A IA está indisponível no Cloudflare. Confira a chave e o modelo Gemini.');
+      if (response.status === 504) throw new Error(message || 'O Gemini não respondeu no tempo esperado. Tente novamente.');
+      if (response.status === 502) throw new Error(message || 'Falha entre Cloudflare e Gemini. Confira o modelo configurado.');
+      throw new Error(message || `Falha ao consultar a IA (HTTP ${response.status}).`);
+    }
+    let data;
+    try { data = await response.json(); }
+    catch (_) { throw new Error('A IA devolveu um resultado inválido.'); }
+    if (!data || typeof data.answer !== 'string' || !data.answer.trim()) throw new Error('A IA não devolveu uma resposta. Tente novamente.');
     return { text: data.answer, source: data.source || 'Dados enviados pelo NutricIA' };
   }
 
   return {
-    text: localEvidenceAnswer(question, products),
-    source: products.length ? `Modo local · ${products.length} registro(s) disponível(is). A IA generativa ainda não foi conectada.` : 'Modo local · nenhum registro real disponível.'
+    text: localEvidenceAnswer(question, allProducts),
+    source: allProducts.length ? `Modo local · ${allProducts.length} registro(s) disponível(is). A IA generativa ainda não foi conectada.` : 'Modo local · nenhum registro real disponível.'
   };
 }
 

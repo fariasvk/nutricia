@@ -1,38 +1,33 @@
-# NutricIA — catálogo de 299 produtos + ajustes de velocidade
+# NutricIA — correção do scanner e da IA (23/10/2026)
 
-## Publicação
-1. Antes de substituir arquivos, faça backup do repositório atual (GitHub → Code → Download ZIP).
-2. Extraia o ZIP desta entrega e envie TODOS os arquivos da pasta extraída para a raiz do repositório no GitHub. **Não envie o ZIP fechado.**
-3. O novo arquivo obrigatório é `catalogo_299.json`; também são obrigatórios `visual.css` e `nutricia-hero-glass.webp` da versão anterior.
-4. Faça commit dos arquivos. Abra o GitHub Pages; após a atualização do `sw.js`, feche/reabra o aplicativo instalado ou recarregue duas vezes caso ainda apareça a versão anterior.
-5. Os dados pessoais do navegador e os registros de Firestore não são apagados pela atualização.
+## 1. GitHub Pages (site)
 
-## Funcionalidade
-- 299 referências de nome, marca, EAN-13, categoria, embalagem, tipo de grão/farinha, variação, perfil indicativo, classificação declarada no arquivo, fonte e observação.
-- Busca pela mesma caixa "Buscar produto, marca ou EAN" da tela Banco de alimentos.
-- O catálogo abre somente quando a aba Banco de alimentos é acessada, mostra 16 resultados por vez e permite carregar mais sob demanda.
-- O botão **Detalhes** apresenta as informações diretamente do CSV original, incluindo a fonte e ressalvas.
-- **Buscar nutrientes** faz uma consulta única ao Open Food Facts para aquele EAN, com timeout de 9 segundos. Caso a consulta encontre nutrientes, salva o registro em Meus produtos; caso contrário, conserva os dados cadastrais do catálogo.
-- O catálogo NÃO é enviado automaticamente ao Firebase e NÃO fica misturado com os produtos nutricionais, IAC ou prompts da IA.
-- Como o CSV não contém composição nutricional nem alérgenos confirmados, não se inventam esses dados e não há classificação de segurança para pessoas com alergias.
+Faça backup do repositório. Extraia este ZIP e carregue os **11 arquivos do site** para a **raiz** de `fariasvk/nutricia`, substituindo as versões anteriores. NÃO envie `worker-cloudflare.js` para o GitHub; ele vai somente ao Cloudflare.
 
-## Melhorias de desempenho
-- Biblioteca de leitura de código de barras carregada **somente ao entrar no scanner** (antes bloqueava o carregamento da página).
-- O catálogo é consultado localmente, sem fazer 299 buscas na internet.
-- Resultados do catálogo são paginados; tabela de produtos pessoais é limitada a 80 linhas mostradas para evitar renderizações excessivas.
-- Reduz a pausa artificial da tela inicial de 900 ms para 350 ms.
-- Limites de 9 s na API Open Food Facts e 18 s nas solicitações à IA, com mensagens de erro em caso de demora.
-- Service Worker v9 serve os arquivos estáticos em cache nas visitas posteriores. Para receber novas versões futuramente, incremente CACHE_NAME e os recursos no SW.
+No site: `index.html`, `app.js`, `sw.js`, `visual.css`, `manifest.json`, `catalogo_299.json`, `nutricia-hero-glass.webp`, `nutricia-icon-192.png`, `nutricia-icon-512.png`, `apple-touch-icon.png`. Este LEIA-ME é opcional.
 
-## Testes importantes
-- Procurar `7897765601350` em Banco de alimentos e abrir detalhes de Azeitona verde sachê (Diza).
-- Digitar `azeitona` e depois `arroz`, conferindo que a lista muda imediatamente e mostra a contagem.
-- Abrir um registro do catálogo e clicar Buscar nutrientes; quando a API não responder, o catálogo deve continuar funcionando.
-- Reiniciar o app e conferir perfis selecionados.
-- Fazer comparação com perfis de alergia. Um produto sem informação de alergênicos não é seguro por padrão.
-- Verificar login Firebase e câmera em um celular real; estes serviços externos não foram testados ao vivo nesta entrega.
+Depois do commit, recarregue duas vezes ou feche e reabra o PWA, para o Service Worker atualizar de v9 para v10.
 
-## Limites
-- A planilha tem **299 itens e nenhum valor nutricional por 100 g**; a categorização "saudável ou junk food" é "não avaliado" ou preliminar. Exibimos esses dados como referência cadastral, não como recomendações clínicas.
-- A consulta a Open Food Facts pode falhar ou retornar dados parciais; a embalagem sempre prevalece.
-- Tempos reais de acesso dependerão da rede, Firebase e Cloudflare/Gemini; os timeouts evitam esperas indefinidas, mas não garantem resposta da IA.
+## 2. Cloudflare Worker (IA) — etapa OBRIGATÓRIA para acelerar respostas de IA
+
+O GitHub NÃO atualiza o Worker hospedado no Cloudflare automaticamente. Em `dash.cloudflare.com` > Workers & Pages > Worker da NutricIA > **Edit code**, substitua todo o código pelo conteúdo do arquivo `worker-cloudflare.js` e faça **Deploy**. **Nunca coloque o segredo Gemini no GitHub.**
+
+Em Settings > Variables and Secrets confira `GEMINI_API_KEY` como Secret. Se tiver `GEMINI_MODEL` configurado como modelo antigo/lento, defina para `gemini-2.5-flash-lite` ou remova a variável para usar o padrão da nova versão. Confirme que o endpoint `/ask` continua em `https://nutriciadivine-night-0498.victor-farias.workers.dev/ask`.
+
+O Worker usa raciocínio desativado em modelos 2.5, contexto menor, limite upstream de 26 s e informa erros de cota/configuração mais claramente. O site agora aguarda até 35 s; isso evita interromper respostas que demoram mais de 18 s. Se a chave/modelo/cota estiverem indisponíveis, nenhum ajuste do front-end sozinho consegue fazer a IA responder.
+
+## 3. Scanner
+
+- Leitura de EAN-8/EAN-13, UPC, ITF e Code 128/39; área de reconhecimento ampliada (usa o enquadramento inteiro), câmera traseira, prioridade para BarcodeDetector quando suportado.
+- Botão **Reiniciar câmera** e botão **Ler foto do código** para quando a câmera estiver desfocada.
+- Assim que lê um código, a câmera para, o número aparece imediatamente e o app tenta identificar no banco pessoal, catálogo local de 299, e Open Food Facts.
+- Quando o catálogo local reconhece o EAN, o app mostra identificação mesmo se Open Food Facts estiver fora; valores nutricionais não serão inventados.
+
+## 4. Testes
+
+1. No celular, abra scanner, permita câmera e mostre o EAN impresso com boa luz; veja o feedback `Código X reconhecido!`.
+2. Se falhar, selecione **Ler foto do código** ou digite o EAN.
+3. Faça uma pergunta simples à IA, como `O que é sódio?`.
+4. Se a IA ainda falhar, confira se o Worker foi atualizado e se GEMINI_API_KEY e GEMINI_MODEL estão corretos.
+
+OBS: sintaxe e fluxos foram testados com simulações locais, mas não foi possível testar fisicamente a câmera, chave secreta do Gemini ou o Cloudflare Worker publicado.

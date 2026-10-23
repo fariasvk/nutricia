@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nutricia-cache-v9-catalogo';
+const CACHE_NAME = 'nutricia-cache-v10-scanner-ia';
 const APP_ASSETS = [
   './', './index.html', './visual.css', './app.js', './manifest.json',
   './catalogo_299.json', './nutricia-hero-glass.webp', './nutricia-icon-192.png',

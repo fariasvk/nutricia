@@ -443,6 +443,11 @@
           <div class="max-w-lg mx-auto soft p-4">
             <div id="reader" class="overflow-hidden rounded-xl min-h-[210px] flex items-center justify-center text-sm muted">A câmera inicia quando você abre esta tela.</div>
             <div id="scanner-feedback" class="muted text-sm mt-3 text-center" role="status">Aguardando permissão para a câmera.</div>
+            <div class="flex flex-wrap gap-2 justify-center mt-3">
+              <button id="btn-restart-scanner" type="button" class="btn btn-secondary">Reiniciar câmera</button>
+              <label for="barcode-photo" class="btn btn-outline cursor-pointer">Ler foto do código</label>
+              <input id="barcode-photo" class="sr-only" type="file" accept="image/*" capture="environment" aria-label="Escolher ou tirar uma foto do código de barras">
+            </div>
           </div>
           <div class="max-w-lg mx-auto mt-5">
             <label class="block font-bold text-sm mb-2" for="manual-barcode">Ou digite o código de barras</label>
