@@ -8,6 +8,7 @@
   <title>NutricIA — Escolhas melhores, com informação</title>
   <link rel="manifest" href="./manifest.json">
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="./favicon-64.png">
   <script>
     try {
       if (localStorage.getItem('nutricia-theme') === 'dark') {
@@ -237,39 +238,22 @@
   <link rel="stylesheet" href="./visual.css">
 </head>
 <body>
-  <!-- Tela de carregamento -->
-  <section id="splash-screen" class="app-screen entry-wrap" aria-label="Carregando NutricIA">
-    <div class="text-center w-full max-w-sm">
-      <div class="mx-auto mb-5 w-fit">
-        <img class="brand-symbol" src="./nutricia-icon-512.png" alt="Símbolo NutricIA">
+  <!-- Boas-vindas: círculo sobe, expande, marca aparece e a interface se revela. -->
+  <section id="splash-screen" class="app-screen nutricia-welcome" aria-label="Boas-vindas ao NutricIA">
+    <div class="welcome-orb" aria-hidden="true"></div>
+    <div class="welcome-wash" aria-hidden="true"></div>
+    <div class="welcome-content">
+      <img class="welcome-icon" src="./nutricia-icon-512.png" alt="Símbolo do NutricIA" width="144" height="144" fetchpriority="high">
+      <div class="welcome-copy">
+        <p class="welcome-label">BEM-VINDO AO</p>
+        <h1 class="welcome-title">Nutric<span>IA</span></h1>
+        <p class="welcome-tagline">Escaneie. Compare. Escolha melhor.</p>
       </div>
-      <div class="wordmark text-3xl mb-3">Nutric<span class="ia">IA</span></div>
-      <p class="muted mb-7">Informação que ajuda a escolher melhor.</p>
-      <div class="progress-track max-w-[210px] mx-auto"><div class="progress-fill" id="splash-progress"></div></div>
-      <p class="muted text-xs mt-3">Preparando seu espaço...</p>
-    </div>
-  </section>
-
-  <!-- Apresentação inicial -->
-  <section id="onboarding-screen" class="app-screen entry-wrap hidden">
-    <div class="entry-card">
-      <div class="flex justify-center mb-6">
-        <img class="brand-symbol" src="./nutricia-icon-512.png" alt="Símbolo NutricIA">
-      </div>
-      <div class="text-center">
-        <p class="eyebrow mb-3" id="onboarding-kicker">Conheça o NutricIA · 1 de 3</p>
-        <h1 class="text-3xl font-black tracking-tight mb-3" id="onboarding-title">Compare com mais clareza.</h1>
-        <p class="muted leading-relaxed mb-7" id="onboarding-copy">Veja lado a lado os dados nutricionais que aparecem nos registros dos produtos.</p>
-      </div>
-      <div class="flex justify-center gap-2 mb-7" aria-hidden="true">
-        <span class="w-2.5 h-2.5 rounded-full" id="onboarding-dot-0" style="background:var(--green)"></span>
-        <span class="w-2.5 h-2.5 rounded-full" id="onboarding-dot-1" style="background:var(--border)"></span>
-        <span class="w-2.5 h-2.5 rounded-full" id="onboarding-dot-2" style="background:var(--border)"></span>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <button id="onboarding-skip" class="btn btn-outline w-full">Pular</button>
-        <button id="onboarding-next" class="btn btn-primary w-full">Próximo</button>
-      </div>
+      <button id="welcome-start" class="welcome-button" type="button">
+        <span>Começar</span>
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+      </button>
+      <p class="welcome-footnote">Informação nutricional para suas compras.</p>
     </div>
   </section>
 

@@ -1,8 +1,8 @@
-const CACHE_NAME = 'nutricia-cache-v12-catalog-search-models';
+const CACHE_NAME = 'nutricia-cache-v13-onboarding-icons';
 const APP_ASSETS = [
   './', './index.html', './visual.css', './app.js', './manifest.json',
   './catalogo_299.json', './nutricia-hero-glass.webp', './nutricia-icon-192.png',
-  './nutricia-icon-512.png', './apple-touch-icon.png'
+  './nutricia-icon-512.png', './nutricia-icon-maskable-512.png', './apple-touch-icon.png', './favicon-64.png'
 ];
 
 self.addEventListener('install', event => {

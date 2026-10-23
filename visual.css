@@ -212,3 +212,171 @@ html.dark .food-alert-unknown { background:#263832; border-color:#4c625b; color:
 .compare-reference-notice span { font-size:.75rem;color:var(--muted); }
 .compare-reference-notice button { align-self:flex-start; margin-top:5px; }
 @media (prefers-reduced-motion:reduce) { .compare-result-row {transition:none;} }
+
+
+/* NutricIA v13 — abertura minimalista (sem bibliotecas externas) */
+.nutricia-welcome {
+  --intro-green: #0c9069;
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  min-height: 100dvh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #fbfdfb;
+  isolation: isolate;
+  color: #063f32;
+  transition: opacity .44s cubic-bezier(.2,.7,.2,1), transform .44s cubic-bezier(.2,.7,.2,1);
+}
+.nutricia-welcome .welcome-orb {
+  width: 78px;
+  height: 78px;
+  position: absolute;
+  bottom: -88px;
+  left: 50%;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 28% 20%, #79e4b2, #1bbd8b 42%, #00694f 100%);
+  box-shadow: 0 10px 28px rgba(0,110,77,.19);
+  transform-origin: 50% 50%;
+  animation: nutri-orb-in 1.8s cubic-bezier(.2,.7,.14,1) both;
+}
+.nutricia-welcome .welcome-wash {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  background: radial-gradient(ellipse at 51% 16%, #effbf1 0%, #fbfdfb 58%, #f4faf6 100%);
+  animation: nutri-wash-in .68s 1.36s both;
+}
+.nutricia-welcome .welcome-content {
+  position: relative;
+  z-index: 2;
+  width: min(100% - 48px, 420px);
+  min-height: 510px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.nutricia-welcome .welcome-icon {
+  display: block;
+  width: clamp(108px, 27vw, 144px);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: 30px;
+  filter: drop-shadow(0 12px 20px rgba(5,98,68,.10));
+  animation: nutri-icon-enter 1.15s 1.42s cubic-bezier(.18,.7,.2,1) both;
+}
+.nutricia-welcome .welcome-copy {
+  margin-top: 13px;
+  animation: nutri-text-enter .8s 2.12s cubic-bezier(.2,.7,.2,1) both;
+}
+.nutricia-welcome .welcome-label {
+  font-size: .67rem;
+  font-weight: 750;
+  letter-spacing: .18em;
+  color: #569381;
+  margin: 0 0 9px;
+}
+.nutricia-welcome .welcome-title {
+  font-size: clamp(2.45rem, 9vw, 3.3rem);
+  line-height: 1.05;
+  letter-spacing: -.065em;
+  font-weight: 850;
+  color: #073e32;
+  margin: 0;
+}
+.nutricia-welcome .welcome-title span { color: #0c946c; }
+.nutricia-welcome .welcome-tagline {
+  margin: 16px 0 0;
+  color: #486b60;
+  font-weight: 500;
+  font-size: clamp(.96rem, 3.5vw, 1.075rem);
+  line-height: 1.45;
+}
+.nutricia-welcome .welcome-button {
+  appearance: none;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: min(100%, 320px);
+  min-height: 56px;
+  margin-top: 44px;
+  background: linear-gradient(115deg, #096a50, #07533f);
+  color: #fff;
+  border-radius: 19px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 750;
+  box-shadow: 0 12px 26px rgba(4,93,64,.15);
+  transition: background .25s ease, box-shadow .25s ease, transform .25s ease;
+  animation: nutri-text-enter .8s 2.42s both;
+}
+.nutricia-welcome .welcome-button svg { transition: transform .24s ease; }
+.nutricia-welcome .welcome-button:hover { box-shadow: 0 15px 30px rgba(4,93,64,.2); transform: translateY(-2px); }
+.nutricia-welcome .welcome-button:hover svg { transform: translateX(4px); }
+.nutricia-welcome .welcome-button:focus-visible { outline: 3px solid #16a678; outline-offset: 4px; }
+.nutricia-welcome .welcome-button:disabled { cursor: wait; }
+.nutricia-welcome .welcome-footnote {
+  color: #729084;
+  margin: 18px 0 0;
+  font-size: .76rem;
+  line-height: 1.6;
+  animation: nutri-text-enter .8s 2.53s both;
+}
+.nutricia-welcome.welcome-leaving {
+  opacity: 0;
+  transform: translateX(11vw);
+  pointer-events: none;
+}
+#auth-screen.route-enter-right, #application.route-enter-right {
+  animation: nutri-screen-slide-right .52s cubic-bezier(.18,.8,.2,1) both;
+}
+@keyframes nutri-orb-in {
+  0%   { transform: translate(-50%, 0) scale(.7); opacity: 1; }
+  30%  { transform: translate(-50%, -42vh) scale(1); opacity: 1; }
+  45%  { transform: translate(-50%, -42vh) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -42vh) scale(62); opacity: 1; }
+}
+@keyframes nutri-wash-in { from {opacity:0;} to {opacity:1;} }
+@keyframes nutri-icon-enter {
+  0% { opacity:0; transform:translateY(42vh) scale(.8); }
+  62% {opacity:1; transform:translateY(8px) scale(1);}
+  100% {opacity:1; transform:translateY(-22px) scale(1);}
+}
+@keyframes nutri-text-enter {
+  from { opacity:0; transform:translateY(22px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes nutri-screen-slide-right {
+  from { opacity: .25; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (max-width: 430px) {
+  .nutricia-welcome .welcome-content { width: min(100% - 40px, 340px); min-height: 460px; }
+  .nutricia-welcome .welcome-button { margin-top: 36px; }
+}
+@media (max-height: 620px) {
+  .nutricia-welcome .welcome-content { min-height: 0; }
+  .nutricia-welcome .welcome-icon { width: 94px; }
+  .nutricia-welcome .welcome-button { margin-top: 22px; min-height: 48px; }
+  .nutricia-welcome .welcome-tagline { margin-top: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nutricia-welcome .welcome-orb, .nutricia-welcome .welcome-wash,
+  .nutricia-welcome .welcome-icon, .nutricia-welcome .welcome-copy,
+  .nutricia-welcome .welcome-button, .nutricia-welcome .welcome-footnote,
+  #auth-screen.route-enter-right, #application.route-enter-right {
+    animation: none !important;
+  }
+  .nutricia-welcome .welcome-orb { opacity:0; }
+  .nutricia-welcome .welcome-wash { opacity:1; }
+  .nutricia-welcome .welcome-button, .nutricia-welcome.welcome-leaving { transition: none !important; }
+}

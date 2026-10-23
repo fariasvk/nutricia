@@ -377,6 +377,8 @@ function initInstallButtons() {
     });
   });
 }
+let welcomeDismissed = false;
+let authStateResolved = false;
 document.addEventListener('DOMContentLoaded', initNutricia);
 
 function initNutricia() {
@@ -392,7 +394,7 @@ function initNutricia() {
   initGlobalSearch();
   initCatalog();
   initAssistant();
-  initOnboarding();
+  initWelcomeScreen();
   initAuth();
   renderProductsTable();
   updateCompareDropdowns();
@@ -401,35 +403,46 @@ function initNutricia() {
   updateAssistantStatus();
   registerServiceWorker();
 
-  const progress = document.getElementById('splash-progress');
-  if (progress) requestAnimationFrame(() => { progress.style.width = '100%'; });
+  // A apresentação permanece na tela até a pessoa clicar em Começar.
+  // Assim o retorno do Firebase não interrompe as animações.
+}
 
-  setTimeout(() => {
-    routeAfterSplash();
-  }, 350);
+function initWelcomeScreen() {
+  const start = document.getElementById('welcome-start');
+  const screen = document.getElementById('splash-screen');
+  if (!start || !screen) return;
+  start.addEventListener('click', () => {
+    if (start.disabled) return;
+    start.disabled = true;
+    screen.classList.add('welcome-leaving');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.setTimeout(() => {
+      welcomeDismissed = true;
+      routeAfterSplash();
+    }, reducedMotion ? 10 : 460);
+  });
 }
 
 function routeAfterSplash() {
-  if (firebaseConfigured) {
-    // O observador do Firebase controla a navegação quando a autenticação está configurada.
-    if (firebaseAuth && firebaseAuth.currentUser) {
-      showApplication(firebaseAuth.currentUser.email || 'Conta');
-      return;
-    }
-    if (localStorage.getItem('nutricia-guest-session') === '1') {
-      showApplication('Visitante');
-      return;
-    }
-  } else if (localStorage.getItem('nutricia-guest-session') === '1') {
-    showApplication('Visitante');
+  if (!welcomeDismissed) return;
+  // Aguarda brevemente a restauração da sessão Firebase para não mandar
+  // uma pessoa já logada à tela de login por engano.
+  if (firebaseConfigured && !authStateResolved) {
+    window.setTimeout(() => {
+      if (firebaseConfigured && !authStateResolved) {
+        // Falha de rede não deve prender a tela de boas-vindas.
+        showAuthScreen();
+      } else routeAfterSplash();
+    }, 1800);
     return;
   }
-
-  hideScreens();
-  if (localStorage.getItem('nutricia-onboarding-done') === '1') {
-    document.getElementById('auth-screen').classList.remove('hidden');
+  if (firebaseAuth?.currentUser) {
+    showApplication(firebaseAuth.currentUser.email || 'Conta');
+    loadProductsFromCloud(firebaseAuth.currentUser);
+  } else if (localStorage.getItem('nutricia-guest-session') === '1') {
+    showApplication('Visitante');
   } else {
-    document.getElementById('onboarding-screen').classList.remove('hidden');
+    showAuthScreen();
   }
 }
 
@@ -454,6 +467,7 @@ if (identity === 'Visitante') {
 }
   
   document.getElementById('application').classList.remove('hidden');
+  document.getElementById('application').classList.add('route-enter-right');
   const greeting = document.getElementById('welcome-user');
   if (greeting) {
     const first = String(identity || 'Visitante').split('@')[0];
@@ -468,51 +482,7 @@ if (identity === 'Visitante') {
 function showAuthScreen() {
   hideScreens();
   document.getElementById('auth-screen').classList.remove('hidden');
-}
-
-function initOnboarding() {
-  const slides = [
-    {
-      kicker: 'Conheça o NutricIA · 1 de 3',
-      title: 'Compare com mais clareza.',
-      copy: 'Veja lado a lado os nutrientes que aparecem nos registros dos alimentos e confira a origem dos dados.'
-    },
-    {
-      kicker: 'Informação útil · 2 de 3',
-      title: 'Entenda, sem adivinhar.',
-      copy: 'A assistente usa dados disponíveis e informa quando não encontra uma informação. Valores ausentes não são tratados como zero.'
-    },
-    {
-      kicker: 'No seu ritmo · 3 de 3',
-      title: 'Um passo de cada vez.',
-      copy: 'Escaneie produtos, escolha um perfil de destaque e salve seus itens neste navegador. O app é educativo e não substitui orientação profissional.'
-    }
-  ];
-
-  const renderSlide = () => {
-    const slide = slides[introStep];
-    document.getElementById('onboarding-kicker').textContent = slide.kicker;
-    document.getElementById('onboarding-title').textContent = slide.title;
-    document.getElementById('onboarding-copy').textContent = slide.copy;
-    for (let i = 0; i < 3; i++) {
-      document.getElementById(`onboarding-dot-${i}`).style.background = i === introStep ? 'var(--green)' : 'var(--border)';
-    }
-    document.getElementById('onboarding-next').textContent = introStep === 2 ? 'Começar' : 'Próximo';
-  };
-
-  const finishIntro = () => {
-    localStorage.setItem('nutricia-onboarding-done', '1');
-    showAuthScreen();
-  };
-
-  document.getElementById('onboarding-next').addEventListener('click', () => {
-    if (introStep < slides.length - 1) {
-      introStep += 1;
-      renderSlide();
-    } else finishIntro();
-  });
-  document.getElementById('onboarding-skip').addEventListener('click', finishIntro);
-  renderSlide();
+  document.getElementById('auth-screen').classList.add('route-enter-right');
 }
 
 function isFirebaseConfigReady() {
@@ -536,13 +506,15 @@ function initAuth() {
       firebaseDb = firebase.firestore();
       firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
       firebaseAuth.onAuthStateChanged(user => {
-      if (user) {
-  showApplication(user.email || 'Conta');
-  loadProductsFromCloud(user);
-}
-        else if (localStorage.getItem('nutricia-guest-session') === '1') showApplication('Visitante');
-        else if (!document.getElementById('splash-screen').classList.contains('hidden')) return;
-        else showAuthScreen();
+        authStateResolved = true;
+        // Nunca saltar a apresentação sem o clique da pessoa.
+        if (!welcomeDismissed) return;
+        if (user) {
+          showApplication(user.email || 'Conta');
+          loadProductsFromCloud(user);
+        } else if (localStorage.getItem('nutricia-guest-session') === '1') {
+          showApplication('Visitante');
+        } else showAuthScreen();
       });
       document.getElementById('auth-feedback').textContent = 'Entre com sua conta ou continue como visitante. O login usa Firebase após a configuração do projeto.';
     } catch (error) {
