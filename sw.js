@@ -1,12 +1,8 @@
-const CACHE_NAME = 'nutricia-cache-v7';
+const CACHE_NAME = 'nutricia-cache-v9-catalogo';
 const APP_ASSETS = [
-  './',
-  './index.html',
-  './app.js',
-  './manifest.json',
-  './nutricia-icon-192.png',
-  './nutricia-icon-512.png',
-  './apple-touch-icon.png'
+  './', './index.html', './visual.css', './app.js', './manifest.json',
+  './catalogo_299.json', './nutricia-hero-glass.webp', './nutricia-icon-192.png',
+  './nutricia-icon-512.png', './apple-touch-icon.png'
 ];
 
 self.addEventListener('install', event => {
@@ -16,9 +12,7 @@ self.addEventListener('install', event => {
       try {
         const response = await fetch(asset, { cache: 'reload' });
         if (response.ok) await cache.put(asset, response);
-      } catch (_) {
-        // Não falha a instalação toda por uma imagem ausente.
-      }
+      } catch (_) {}
     }));
     await self.skipWaiting();
   })());
@@ -27,10 +21,10 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.map(key => {
-      if (key.startsWith('nutricia-cache-') && key !== CACHE_NAME) return caches.delete(key);
-      return Promise.resolve();
-    }));
+    await Promise.all(keys.map(key =>
+      key.startsWith('nutricia-cache-') && key !== CACHE_NAME
+        ? caches.delete(key) : Promise.resolve()
+    ));
     await self.clients.claim();
   })());
 });
@@ -42,12 +36,19 @@ self.addEventListener('fetch', event => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     const cached = await cache.match(event.request);
+    // Assets carregam imediatamente do cache; um novo SW instala nova versão integral.
+    if (cached && event.request.mode !== 'navigate') return cached;
+    if (cached && event.request.mode === 'navigate') {
+      // Navegação rápida mesmo com internet lenta; evita esperar por HTTP bloqueado.
+      return cached;
+    }
     try {
       const response = await fetch(event.request);
-      if (response && response.ok) await cache.put(event.request, response.clone());
+      if (response.ok) await cache.put(event.request, response.clone());
       return response;
     } catch (_) {
-      return cached || (event.request.mode === 'navigate' ? await cache.match('./index.html') : Response.error());
+      if (event.request.mode === 'navigate') return await cache.match('./index.html') || Response.error();
+      return Response.error();
     }
   })());
 });

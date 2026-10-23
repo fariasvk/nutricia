@@ -37,7 +37,6 @@
       }
     };
   </script>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -235,6 +234,7 @@
   }
 }
   </style>
+  <link rel="stylesheet" href="./visual.css">
 </head>
 <body>
   <!-- Tela de carregamento -->
@@ -317,13 +317,13 @@
   <div id="application" class="hidden">
     <header class="topbar">
       <div class="topbar-inner">
-        <div class="flex items-center gap-3">
-          <img class="brand-symbol small" src="./nutricia-icon-192.png" alt="Símbolo NutricIA">
-          <div>
-            <div class="wordmark">Nutric<span class="ia">IA</span></div>
-            <p class="muted text-xs mt-1">Escolhas melhores, com informação.</p>
-          </div>
-        </div>
+        <button id="brand-home" class="brand-home flex items-center gap-3" type="button" aria-label="Voltar ao início do NutricIA">
+          <img class="brand-symbol small" src="./nutricia-icon-192.png" alt="">
+          <span class="brand-copy">
+            <span class="wordmark block">Nutric<span class="ia">IA</span></span>
+            <span class="muted text-xs mt-1 block">Escolhas melhores, com informação.</span>
+          </span>
+        </button>
 
         <div class="header-tools">
           <input id="global-search" class="field top-search" type="search" placeholder="Buscar alimento..." aria-label="Buscar alimento">
@@ -346,10 +346,7 @@
               </div>
             </div>
           </div>
-          <button id="theme-toggle" type="button" class="btn btn-outline" aria-label="Alternar tema">
-            <svg id="theme-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-            <span id="theme-label">Modo escuro</span>
-          </button>
+
         </div>
       </div>
     </header>
@@ -360,7 +357,7 @@
           <p class="eyebrow">Seu espaço nutricional</p>
           <p class="font-bold text-sm mt-1" id="welcome-user">Olá!</p>
         </div>
-        <button id="logout-button" class="btn btn-quiet text-sm" type="button">Sair</button>
+
       </div>
 
       <!-- Início -->
@@ -372,13 +369,7 @@
           <button class="btn mt-6" style="background:#fff;color:#07573f" data-target="assistente" type="button">Perguntar ao NutricIA
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
           </button>
-          <svg class="hero-art" viewBox="0 0 130 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M20 49h14l8 42h52l9-33H39" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
-            <circle cx="53" cy="103" r="6" fill="white"/><circle cx="88" cy="103" r="6" fill="white"/>
-            <path d="M58 43C51 22 66 7 86 10c3 18-10 31-28 33Z" fill="#9ddc70"/>
-            <path d="M58 43Q66 27 78 19" fill="none" stroke="#d9f99d" stroke-width="3"/>
-            <path d="M64 65v15m-7.5-7.5h15" stroke="#c3f289" stroke-width="5" stroke-linecap="round"/>
-          </svg>
+
         </div>
 
         <div class="surface p-3 flex items-center gap-3">
@@ -386,7 +377,7 @@
           <input id="home-search" class="field" type="search" placeholder="Buscar alimento ou marca e apertar Enter" aria-label="Buscar alimento na tela inicial">
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="quick-tiles grid grid-cols-2 md:grid-cols-5 gap-3">
           <button class="tile" data-target="scanner" type="button">
             <span class="tile-icon icon-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8V4h4m8 0h4v4M4 16v4h4m8 0h4v-4"/><path d="M7 8v8m3-8v8m4-8v8m3-8v8"/></svg></span>
             <strong class="block text-sm">Escanear produto</strong><span class="muted text-xs block mt-1">Leia o código de barras</span>
@@ -402,6 +393,10 @@
           <button class="tile" data-target="assistente" type="button">
             <span class="tile-icon icon-orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a8 8 0 0 0-8 8v2a3 3 0 0 0 3 3h2v-6H7a5 5 0 0 1 10 0h-2v6h2a3 3 0 0 0 3-3v-2a8 8 0 0 0-8-8Z"/><path d="M9 20h6"/></svg></span>
             <strong class="block text-sm">Pergunte à IA</strong><span class="muted text-xs block mt-1">Respostas baseadas nos dados</span>
+          </button>
+          <button class="tile" data-target="passos" type="button">
+            <span class="tile-icon icon-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="17" r="2"/></svg></span>
+            <strong class="block text-sm">Laboratório de pesos</strong><span class="muted text-xs block mt-1">Explore como funciona o IAC</span>
           </button>
         </div>
 
@@ -444,7 +439,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8V4h4m8 0h4v4M4 16v4h4m8 0h4v-4"/><path d="M7 8v8m3-8v8m4-8v8m3-8v8"/></svg>
             Escanear código de barras
           </h1>
-          <p class="muted text-sm mb-5">Consulte os dados disponíveis na base colaborativa Open Food Facts. Confira sempre a embalagem real.</p>
+          <p class="muted text-sm mb-5">Consulte os dados disponíveis na base colaborativa Open Food Facts. Confira sempre a embalagem real. No celular, permita o uso da câmera e mantenha o código bem iluminado.</p>
           <div class="max-w-lg mx-auto soft p-4">
             <div id="reader" class="overflow-hidden rounded-xl min-h-[210px] flex items-center justify-center text-sm muted">A câmera inicia quando você abre esta tela.</div>
             <div id="scanner-feedback" class="muted text-sm mt-3 text-center" role="status">Aguardando permissão para a câmera.</div>
@@ -470,6 +465,14 @@
             <div><label for="select-prod-2" class="block text-sm font-bold mb-2">Produto 2</label><select id="select-prod-2" class="field"><option value="">Selecione um produto</option></select></div>
           </div>
           <div id="comparison-results"><p class="muted text-sm text-center py-8">Selecione pelo menos um produto para começar.</p></div>
+          <div id="comparison-ai-area" class="ai-compare-panel soft p-4 mt-5 hidden">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div><h2 class="font-black text-base">Entenda a comparação com IA</h2><p class="muted text-xs mt-1">Explicação opcional, com base nos registros dos dois produtos.</p></div>
+              <button id="compare-ai-button" class="btn btn-primary" type="button">Explicar com IA</button>
+            </div>
+            <p id="comparison-ai-output" class="text-sm leading-relaxed mt-4 hidden" aria-live="polite"></p>
+            <p class="muted text-xs mt-3">A IA pode cometer erros; informações de alergênicos devem ser conferidas no rótulo.</p>
+          </div>
         </div>
       </section>
 
@@ -477,9 +480,21 @@
       <section id="tab-banco" class="tab-content hidden">
         <div class="surface">
           <div class="flex flex-wrap items-start justify-between gap-3 mb-5">
-            <div><h1 class="section-title mb-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9h18l-2 11H5L3 9Z M8 9l4-5 4 5M8 13v4m4-4v4m4-4v4"/></svg>Banco de alimentos</h1><p class="muted text-sm">Produtos deste navegador, encontrados pela API ou inseridos manualmente.</p></div>
-            <input id="search-db" class="field w-full sm:max-w-xs" type="search" placeholder="Buscar nome, marca ou EAN">
+            <div><h1 class="section-title mb-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9h18l-2 11H5L3 9Z M8 9l4-5 4 5M8 13v4m4-4v4m4-4v4"/></svg>Banco de alimentos</h1><p class="muted text-sm">Pesquise produtos salvos e o catálogo de 299 referências por nome, marca ou EAN.</p></div>
+            <input id="search-db" class="field w-full sm:max-w-xs" type="search" placeholder="Buscar produto, marca ou EAN" autocomplete="off">
           </div>
+          <section class="catalog-section soft p-4 mb-5" aria-label="Catálogo de alimentos pré-cadastrados">
+            <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+              <div><h2 class="font-black text-base">Catálogo de referência — 299 produtos</h2>
+                <p class="muted text-xs mt-1">Busca local rápida. Clique em Detalhes para ver dados cadastrais ou em Buscar nutrientes para consultar a Open Food Facts apenas para esse item.</p></div>
+              <span id="catalog-count" class="tiny-source">299 registros</span>
+            </div>
+            <p id="catalog-status" class="muted text-xs mb-3" aria-live="polite">O catálogo é carregado ao abrir esta tela.</p>
+            <div id="catalog-list" class="catalog-list" aria-live="off"></div>
+            <button id="catalog-more" class="btn btn-outline mt-3 w-full hidden" type="button">Mostrar mais produtos</button>
+          </section>
+          <h2 class="font-black text-base mb-3">Meus produtos com informações nutricionais</h2>
+          <p class="muted text-xs mb-3">Inclui os produtos que você consultou no Open Food Facts e os cadastrados manualmente. O catálogo de referência acima não é salvo aqui automaticamente.</p>
           <div class="overflow-x-auto rounded-xl border" style="border-color:var(--border)">
             <table class="w-full text-left text-sm">
               <thead><tr><th>Produto / marca</th><th>EAN</th><th>Sódio / 100 g</th><th>Açúcares / 100 g</th><th>Fonte</th><th>Ação</th></tr></thead>
@@ -595,7 +610,7 @@
           <label for="profile-search-main" class="block text-sm font-bold mb-2">Buscar perfil de saúde</label>
           <input id="profile-search-main" class="field" type="search" placeholder="Digite o nome do perfil..." autocomplete="off">
           
-<div id="profile-options-main" class="grid sm:grid-cols-2 gap-3 mt-3">
+<div id="profile-options-main" class="profile-available-list grid sm:grid-cols-2 gap-3 mt-3">
   <p class="muted text-sm">Digite para encontrar um perfil.</p>
 </div>
 
@@ -611,8 +626,9 @@
 
 <div class="soft p-4 mt-5">
   <h3 class="font-bold mb-3">Meus perfis selecionados</h3>
+  <p class="muted text-xs mb-3">Você pode selecionar vários perfis. Toque no X para remover um.</p>
 
-  <div id="selected-profiles-list" class="grid sm:grid-cols-2 gap-3">
+  <div id="selected-profiles-list" class="selected-profiles-list grid sm:grid-cols-2 gap-3">
     <p class="muted text-sm">Perfil Geral</p>
   </div>
 
@@ -624,12 +640,23 @@
 </div>
 
 <div class="surface">
-  <h2 class="section-title mb-4">Outras ferramentas</h2>
+  <h2 class="section-title mb-4">Mais informações</h2>
 
           <div class="grid sm:grid-cols-2 gap-3">
             <button class="btn btn-secondary justify-start" type="button" data-target="passos">Laboratório de pesos do IAC</button>
             <button class="btn btn-secondary justify-start" type="button" data-target="relatorio">Relatório científico</button>
-            <button id="logout-button-profile" class="btn btn-outline justify-start" type="button">Sair da sessão</button>
+
+          </div>
+        </div>
+        <div class="surface settings-surface">
+          <h2 class="section-title mb-4">Configurações</h2>
+          <p class="muted text-sm mb-4">Aparência e acesso à sua conta.</p>
+          <div class="settings-actions">
+          <button id="theme-toggle" type="button" class="btn btn-outline" aria-label="Alternar tema">
+            <svg id="theme-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <span id="theme-label">Modo escuro</span>
+          </button>
+            <button id="logout-button-profile" class="btn btn-outline" type="button">Sair da sessão</button>
           </div>
         </div>
       </section>

@@ -2,6 +2,7 @@
 'use strict';
 
 const OFF_API_URL = 'https://world.openfoodfacts.org/api/v2/product/';
+const OFF_FIELDS = 'code,product_name,brands,nutriments,serving_size,image_front_url,ingredients_text,ingredients_text_pt,allergens_tags,allergens,allergens_from_ingredients,traces_tags,traces,labels_tags,labels,ingredients_analysis_tags';
 
 /*
   CONFIGURAÇÃO:
@@ -130,8 +131,9 @@ const savedProfiles = (() => {
       localStorage.getItem('nutricia-active-profiles')
     );
 
-    if (Array.isArray(saved) && saved.length > 0) {
-      return saved;
+    if (Array.isArray(saved)) {
+      const valid = [...new Set(saved.filter(key => Object.hasOwn(PROFILE_MAP, key)))];
+      if (valid.length) return valid.length > 1 ? valid.filter(key => key !== 'geral') : valid;
     }
   } catch (error) {
     console.warn('Não foi possível recuperar os perfis:', error);
@@ -147,6 +149,8 @@ const state = {
   products: [],
   scannerInstance: null,
   scanning: false,
+  lastScanCode: '',
+  lastScanAt: 0,
   weights: { sodium: 2.0, sugar: 1.5, fiber: 2.0 }
 };
 
@@ -158,6 +162,165 @@ let authMode = 'login';
 let introStep = 0;
 let assistantBusy = false;
 let deferredInstallPrompt = null;
+
+// Metadados estáticos; não entram no banco pessoal, no IAC ou nos prompts de IA automaticamente.
+let catalogItems = null;
+let catalogPromise = null;
+let catalogVisibleCount = 16;
+let catalogSelectedCode = '';
+let catalogQueryTimer = null;
+let catalogFetchBusy = false;
+let scannerLibraryPromise = null;
+
+function normalizeCatalogText(text) {
+  return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+async function loadCatalog() {
+  if (catalogItems) return catalogItems;
+  if (catalogPromise) return catalogPromise;
+  const status = document.getElementById('catalog-status');
+  if (status) status.textContent = 'Carregando catálogo local...';
+  catalogPromise = (async () => {
+    const response = await fetch('./catalogo_299.json');
+    if (!response.ok) throw new Error(`Catálogo não disponível (HTTP ${response.status})`);
+    const data = await response.json();
+    if (!Array.isArray(data.items) || data.items.length !== 299) {
+      throw new Error('O arquivo do catálogo está incompleto.');
+    }
+    const seen = new Set();
+    catalogItems = data.items.filter(item => {
+      if (!/^\d{13}$/.test(String(item.code || '')) || seen.has(item.code)) return false;
+      seen.add(item.code);
+      item._search = normalizeCatalogText(`${item.code} ${item.name} ${item.brand} ${item.category} ${item.package} ${item.variant}`);
+      return true;
+    });
+    if (catalogItems.length !== 299) throw new Error('Há códigos inválidos ou repetidos no catálogo.');
+    if (status) status.textContent = '299 registros de referência. Sem valores nutricionais ou alergênicos confirmados.';
+    renderCatalogResults();
+    return catalogItems;
+  })().catch(error => {
+    if (status) status.textContent = 'Não foi possível abrir o catálogo. Confira se catalogo_299.json foi publicado com o aplicativo.';
+    console.warn('Catálogo local indisponível:', error);
+    return null;
+  }).finally(() => { catalogPromise = null; });
+  return catalogPromise;
+}
+
+function initCatalog() {
+  const search = document.getElementById('search-db');
+  if (search) {
+    search.addEventListener('input', () => {
+      clearTimeout(catalogQueryTimer);
+      catalogQueryTimer = setTimeout(() => {
+        catalogVisibleCount = 16;
+        catalogSelectedCode = '';
+        renderCatalogResults();
+      }, 90);
+    });
+  }
+  document.getElementById('catalog-list')?.addEventListener('click', async event => {
+    const detailButton = event.target.closest('[data-catalog-detail]');
+    const fetchButton = event.target.closest('[data-catalog-fetch]');
+    if (detailButton) {
+      const code = detailButton.dataset.catalogDetail;
+      catalogSelectedCode = catalogSelectedCode === code ? '' : code;
+      renderCatalogDetails();
+    } else if (fetchButton && !catalogFetchBusy) {
+      const code = fetchButton.dataset.catalogFetch;
+      await queryCatalogNutrition(code);
+    }
+  });
+  document.getElementById('catalog-more')?.addEventListener('click', () => {
+    catalogVisibleCount += 24;
+    renderCatalogResults();
+  });
+}
+
+function renderCatalogResults() {
+  const target = document.getElementById('catalog-list');
+  if (!target || !catalogItems) return;
+  const q = normalizeCatalogText(document.getElementById('search-db')?.value || '');
+  const found = q ? catalogItems.filter(item => item._search.includes(q)) : catalogItems;
+  const showing = found.slice(0, catalogVisibleCount);
+  const counter = document.getElementById('catalog-count');
+  if (counter) counter.textContent = `${found.length} de 299 registros encontrados`;
+  target.innerHTML = showing.length ? showing.map(item => `
+    <article class="catalog-entry" data-catalog-code="${escapeHtml(item.code)}">
+      <div class="catalog-copy">
+        <p class="catalog-name">${escapeHtml(item.name)}</p>
+        <p class="muted text-xs">${escapeHtml(item.brand)} · ${escapeHtml(item.category)} · ${escapeHtml(item.package)}</p>
+        <p class="muted text-xs font-mono">EAN ${escapeHtml(item.code)}</p>
+      </div>
+      <div class="catalog-actions">
+        <button type="button" class="btn btn-secondary catalog-btn" data-catalog-detail="${escapeHtml(item.code)}" aria-expanded="${catalogSelectedCode === item.code}">Detalhes</button>
+        <button type="button" class="btn btn-outline catalog-btn" data-catalog-fetch="${escapeHtml(item.code)}">Buscar nutrientes</button>
+      </div>
+      <div class="catalog-detail-container" data-catalog-detail-container="${escapeHtml(item.code)}"></div>
+    </article>`).join('')
+    : '<p class="muted text-sm p-4">Nenhum item encontrado no catálogo. Tente outro nome, marca ou EAN.</p>';
+  const more = document.getElementById('catalog-more');
+  if (more) more.classList.toggle('hidden', found.length <= catalogVisibleCount);
+  renderCatalogDetails();
+}
+
+function renderCatalogDetails() {
+  document.querySelectorAll('[data-catalog-detail-container]').forEach(node => {
+    node.innerHTML = '';
+    const expanded = node.dataset.catalogDetailContainer === catalogSelectedCode;
+    const button = node.parentElement.querySelector('[data-catalog-detail]');
+    if (button) button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    if (!expanded || !catalogItems) return;
+    const item = catalogItems.find(p => p.code === catalogSelectedCode);
+    if (!item) return;
+    const safeSource = (() => {
+      try {
+        const parsed = new URL(item.source);
+        return ['https:', 'http:'].includes(parsed.protocol)
+          ? `<a href="${escapeHtml(parsed.href)}" target="_blank" rel="noopener noreferrer" class="catalog-link">Consultar fonte original</a>`
+          : '<span>Fonte sem endereço verificável</span>';
+      } catch (_) { return '<span>Fonte sem endereço verificável</span>'; }
+    })();
+    const show = (label, value) => `<div><span class="muted text-xs block">${label}</span><strong class="text-sm">${escapeHtml(value || 'Não informado')}</strong></div>`;
+    node.innerHTML = `<div class="catalog-details soft p-4 mt-3">
+      <div class="catalog-details-grid">
+        ${show('EAN-13', item.code)}${show('Categoria', item.category)}${show('Embalagem', item.package)}
+        ${show('Tipo de grão ou farinha', item.grainType)}${show('Variação', item.variant)}
+        ${show('Perfil indicativo do catálogo', item.indicativeProfile)}
+        ${show('Avaliação nutricional no arquivo', item.classification)}
+      </div>
+      <p class="muted text-xs mt-3">${escapeHtml(item.verificationNotes)}</p>
+      <div class="mt-3 text-sm">${safeSource}</div>
+      <p class="catalog-disclaimer mt-3">Os dados acima são apenas cadastrais. Este catálogo não comprova que o alimento seja seguro para alergias, nem possui informações nutricionais suficientes para calcular IAC.</p>
+    </div>`;
+  });
+}
+
+async function queryCatalogNutrition(code) {
+  if (catalogFetchBusy) return;
+  const item = catalogItems?.find(p => p.code === code);
+  if (!item) return;
+  const status = document.getElementById('catalog-status');
+  catalogFetchBusy = true;
+  const buttons = [...document.querySelectorAll('[data-catalog-fetch]')];
+  buttons.forEach(button => { button.disabled = true; });
+  if (status) status.textContent = `Consultando dados nutricionais de ${item.name}...`;
+  try {
+    const result = await fetchProductFromOFF(code);
+    if (result) {
+      if (status) status.textContent = `Cadastro encontrado: ${result.name}. Dados nutricionais incluídos em Meus produtos. Confira a embalagem.`;
+      renderCatalogResults();
+    } else if (status) {
+      status.textContent = 'Consulta não disponível ou produto sem cadastro nutricional no Open Food Facts. Os dados do catálogo continuam acessíveis.';
+    }
+  } catch (error) {
+    if (status) status.textContent = 'A consulta falhou. Os registros locais continuam disponíveis.';
+  } finally {
+    catalogFetchBusy = false;
+    buttons.forEach(button => { button.disabled = false; });
+  }
+}
+
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
@@ -204,10 +367,12 @@ function initNutricia() {
   initInstallButtons();
   initNavigation();
   initProfilePicker();
+  initBrandHome();
   initManualForms();
   initComparator();
   initWeightLab();
   initGlobalSearch();
+  initCatalog();
   initAssistant();
   initOnboarding();
   initAuth();
@@ -223,7 +388,7 @@ function initNutricia() {
 
   setTimeout(() => {
     routeAfterSplash();
-  }, 900);
+  }, 350);
 }
 
 function routeAfterSplash() {
@@ -453,8 +618,7 @@ updateDashboardStats();
     }
     showAuthScreen();
   };
-  document.getElementById('logout-button').addEventListener('click', logout);
-  document.getElementById('logout-button-profile').addEventListener('click', logout);
+  document.getElementById('logout-button-profile')?.addEventListener('click', logout);
 }
 
 function setAuthFeedback(message, error = false) {
@@ -482,6 +646,10 @@ function initTheme() {
   });
 }
 
+function initBrandHome() {
+  document.getElementById('brand-home')?.addEventListener('click', () => showTab('inicio'));
+}
+
 function initNavigation() {
   document.querySelectorAll('[data-target]').forEach(button => {
     button.addEventListener('click', event => {
@@ -504,6 +672,7 @@ function showTab(target) {
     button.setAttribute('aria-current', active ? 'page' : 'false');
   });
   if (target === 'scanner') initCameraScanner();
+  if (target === 'banco') loadCatalog();
   else stopCameraScanner();
   if (target === 'assistente') {
     updateAssistantStatus();
@@ -584,11 +753,11 @@ function renderProfileOptions(query, targetId) {
     `${key} ${profile.label} ${profile.title} ${profile.text}`.toLocaleLowerCase('pt-BR').includes(q)
   );
   if (!matches.length) {
-    container.innerHTML = '<p class="muted text-sm p-3">Nenhum perfil encontrado. Tente outra palavra.</p>';
+    container.innerHTML = '<p class="muted text-sm p-3">Nenhum perfil disponível nesta busca.</p>';
     return;
   }
   container.innerHTML = matches.map(([key, profile]) => `
-    <button class="${targetId === 'profile-options-main' ? 'health-card w-full text-left' : 'profile-option'}" type="button" data-profile-pick="${escapeHtml(key)}" role="option" aria-selected="${state.activeProfiles.includes(key)}">
+    <button class="${targetId === 'profile-options-main' ? 'health-card profile-choice w-full text-left' : 'profile-option'}" type="button" data-profile-pick="${escapeHtml(key)}" role="option" aria-selected="${state.activeProfiles.includes(key)}">
       <span class="health-dot"></span>
       <span><strong class="block">${escapeHtml(profile.label)}</strong><span class="muted text-xs">${escapeHtml(profile.text)}</span></span>
     </button>
@@ -649,7 +818,9 @@ try {
   const names = profiles.map(p => p.label).join(' + ');
   const descriptions = profiles.map(p => p.text).join(' ');
 
-  document.getElementById('profile-short-label').textContent = `Perfis: ${names}`;
+  const shortLabel = document.getElementById('profile-short-label');
+  shortLabel.textContent = selected.length > 1 ? `${selected.length} perfis selecionados` : `Perfil: ${names}`;
+  shortLabel.title = names;
   document.getElementById('profile-badge').textContent = names;
   document.getElementById('profile-details').textContent = descriptions;
   document.getElementById('active-profile-name').textContent = names;
@@ -664,7 +835,7 @@ try {
       if (!profile) return '';
 
       return `
-        <div class="health-card flex items-center justify-between gap-3">
+        <div class="selected-profile-card flex items-center justify-between gap-3">
           <div>
             <strong class="block">${escapeHtml(profile.label)}</strong>
             <span class="muted text-xs">${escapeHtml(profile.text)}</span>
@@ -672,7 +843,7 @@ try {
 
           <button
             type="button"
-            class="btn btn-outline"
+            class="profile-remove"
             data-remove-profile="${escapeHtml(key)}"
             aria-label="Remover ${escapeHtml(profile.label)}"
           >✕</button>
@@ -714,6 +885,8 @@ function initGlobalSearch() {
     if (target) target.value = value;
     showTab('banco');
     renderProductsTable();
+    catalogVisibleCount = 16;
+    renderCatalogResults();
   };
   search.addEventListener('keydown', event => {
     if (event.key === 'Enter') doSearch(search.value.trim());
@@ -781,6 +954,43 @@ function initManualForms() {
 function initComparator() {
   document.getElementById('select-prod-1').addEventListener('change', renderComparisonTable);
   document.getElementById('select-prod-2').addEventListener('change', renderComparisonTable);
+  document.getElementById('comparison-results')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-refresh-barcode]');
+    if (!button || button.disabled) return;
+    button.disabled = true;
+    button.textContent = 'Atualizando cadastro...';
+    try {
+      const product = await fetchProductFromOFF(button.dataset.refreshBarcode);
+      if (product) button.textContent = 'Dados atualizados';
+      else { button.textContent = 'Falhou. Tentar novamente'; button.disabled = false; }
+    } catch (_) { button.disabled = false; button.textContent = 'Tentar novamente'; }
+  });
+  document.getElementById('compare-ai-button')?.addEventListener('click', async () => {
+    const first = state.products.find(p => p.code === document.getElementById('select-prod-1').value);
+    const second = state.products.find(p => p.code === document.getElementById('select-prod-2').value);
+    if (!first || !second) return;
+    if (first.demo || second.demo) {
+      const output = document.getElementById('comparison-ai-output');
+      output.classList.remove('hidden');
+      output.textContent = 'Produtos de demonstração são fictícios e não podem ser analisados como dados reais pela IA.';
+      return;
+    }
+    const button = document.getElementById('compare-ai-button');
+    const output = document.getElementById('comparison-ai-output');
+    button.disabled = true;
+    output.classList.remove('hidden');
+    output.textContent = 'Analisando os dados disponíveis...';
+    const snapshot = `${first.code}|${second.code}`;
+    try {
+      const question = `Compare apenas estes dois produtos cadastrados: ${first.name} (código ${first.code}) e ${second.name} (código ${second.code}). Use exclusivamente seus nutrientes por 100 g e as declarações de ingredientes/alérgenos do contexto enviado. Explique as diferenças de forma curta, separando o IAC simulado da segurança para os perfis selecionados. Não declare produto seguro quando faltarem dados de alergênicos. Destaque se é necessário conferir o rótulo.`;
+      const response = await askNutricia(question, [first.code, second.code]);
+      if (document.getElementById('comparison-ai-area').dataset.selection === snapshot) {
+        output.textContent = formatNutriciaAnswer(response.text);
+      }
+    } catch (error) {
+      output.textContent = `Não foi possível gerar a explicação agora: ${error.message || 'tente novamente'}`;
+    } finally { button.disabled = false; }
+  });
 }
 
 function initWeightLab() {
@@ -800,48 +1010,98 @@ function initWeightLab() {
   });
 }
 
+function loadScannerLibrary() {
+  if (typeof Html5Qrcode !== 'undefined' && typeof Html5QrcodeSupportedFormats !== 'undefined') {
+    return Promise.resolve(true);
+  }
+  if (scannerLibraryPromise) return scannerLibraryPromise;
+  scannerLibraryPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/html5-qrcode';
+    script.async = true;
+    const timeout = setTimeout(() => {
+      script.remove();
+      reject(new Error('O leitor demorou demais para carregar.'));
+    }, 8500);
+    script.onload = () => { clearTimeout(timeout); resolve(true); };
+    script.onerror = () => { clearTimeout(timeout); reject(new Error('Não foi possível baixar o leitor.')); };
+    document.head.appendChild(script);
+  }).finally(() => { scannerLibraryPromise = null; });
+  return scannerLibraryPromise;
+}
+
 async function initCameraScanner() {
-  const feedback = document.getElementById('scanner-feedback');
-  if (state.scanning || state.scannerInstance) return;
-  feedback.textContent = 'Solicitando acesso à câmera...';
+  if (state.scannerInstance || state.scanning) return;
+  if (!window.isSecureContext && location.hostname !== 'localhost') {
+    setScannerFeedback('A câmera exige conexão HTTPS. Você pode digitar o código abaixo.', 'warning');
+    return;
+  }
   if (typeof Html5Qrcode === 'undefined') {
-    setScannerFeedback('A biblioteca do scanner não carregou. Use a busca manual.', 'warning');
+    setScannerFeedback('Preparando leitor de códigos... Você já pode digitar o EAN abaixo.', 'info');
+    try { await loadScannerLibrary(); }
+    catch (_) {
+      setScannerFeedback('A câmera não pôde ser preparada. Use o código digitado.', 'warning');
+      return;
+    }
+  }
+  if (state.activeTab !== 'scanner') return;
+  if (typeof Html5Qrcode === 'undefined' || typeof Html5QrcodeSupportedFormats === 'undefined') {
+    setScannerFeedback('O leitor de códigos não está disponível. Digite o EAN.', 'warning');
     return;
   }
   const reader = document.getElementById('reader');
   if (!reader) return;
+  setScannerFeedback('Solicitando acesso à câmera...', 'info');
   try {
- const scanner = new Html5Qrcode('reader', {
-  formatsToSupport: [
-    Html5QrcodeSupportedFormats.EAN_13,
-    Html5QrcodeSupportedFormats.EAN_8,
-    Html5QrcodeSupportedFormats.UPC_A
-  ]
-});
+    const scanner = new Html5Qrcode('reader', {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A
+      ],
+      verbose: false
+    });
     state.scannerInstance = scanner;
-    await scanner.start(
-      { facingMode: 'environment' },
-      
-{ fps: 15, qrbox: { width: 250, height: 100 } },
-async decodedText => {
-  if (state.scanning) return;
-  state.scanning = true;
-
-  try {
-    document.getElementById('manual-barcode').value = decodedText;
-    await fetchProductFromOFF(decodedText);
-  } finally {
-    state.scanning = false;
-  }
-},
-errorMessage => {
-  console.log('Scanner:', errorMessage);
-}
-    );
-    setScannerFeedback('Câmera ativa. Aponte para o código de barras do produto.', 'success');
-  } catch (_) {
+    const scanConfig = {
+      fps: 10,
+      aspectRatio: 1.7778,
+      qrbox: (width, height) => ({
+        width: Math.min(Math.max(160, Math.round(width * .84)), Math.max(160, width - 12)),
+        height: Math.min(125, Math.max(75, Math.round(height * .35)))
+      })
+    };
+    const found = async decodedText => {
+      const now = Date.now();
+      if (state.scanning || (state.lastScanCode === decodedText && now - state.lastScanAt < 8000)) return;
+      state.scanning = true;
+      state.lastScanCode = decodedText;
+      state.lastScanAt = now;
+      const field = document.getElementById('manual-barcode');
+      if (field) field.value = decodedText;
+      try {
+        const product = await fetchProductFromOFF(decodedText);
+        if (product) {
+          await stopCameraScanner();
+          setScannerFeedback('Produto localizado. Para ler outro código, abra novamente o scanner.', 'success');
+        }
+      } finally {
+        state.scanning = false;
+      }
+    };
+    try {
+      await scanner.start({ facingMode: 'environment' }, scanConfig, found, () => {});
+    } catch (firstError) {
+      const cameras = await Html5Qrcode.getCameras();
+      const rear = cameras.find(camera => /back|rear|traseira|environment/i.test(camera.label)) || cameras[0];
+      if (!rear) throw firstError;
+      await scanner.start(rear.id, scanConfig, found, () => {});
+    }
+    setScannerFeedback('Câmera ativa. Enquadre o código de barras e evite reflexos.', 'success');
+  } catch (error) {
+    try { await state.scannerInstance?.clear(); } catch (_) {}
     state.scannerInstance = null;
-    setScannerFeedback('Não foi possível abrir a câmera. Confira a permissão e tente a busca manual.', 'error');
+    console.warn('Não foi possível iniciar a câmera:', error);
+    setScannerFeedback('Não foi possível acessar a câmera. Confira a permissão do navegador ou digite o código.', 'warning');
   }
 }
 
@@ -863,11 +1123,12 @@ async function fetchProductFromOFF(barcode) {
   }
   setScannerFeedback(`Consultando Open Food Facts para o código ${code}...`, 'info');
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 9000);
   try {
-    
-const response = await fetch(`${OFF_API_URL}${encodeURIComponent(code)}.json?fields=code,product_name,brands,nutriments,serving_size,image_front_url,ingredients_text,ingredients_text_pt,allergens_tags,allergens,allergens_from_ingredients,traces_tags,traces`, {
-
-      headers: { 'Accept': 'application/json' }
+    const response = await fetch(`${OFF_API_URL}${encodeURIComponent(code)}.json?fields=${OFF_FIELDS}`, {
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
@@ -900,6 +1161,9 @@ traces: Array.isArray(product.traces_tags)
   : [],
 
 tracesText: product.traces || '',
+labels: product.labels || '',
+labelsTags: Array.isArray(product.labels_tags) ? product.labels_tags : [],
+ingredientsAnalysisTags: Array.isArray(product.ingredients_analysis_tags) ? product.ingredients_analysis_tags : [],
 
 portion: product.serving_size || 'Não disponível',
 
@@ -918,8 +1182,15 @@ portion: product.serving_size || 'Não disponível',
     saveProductToDb(newProduct);
     displayScanResult(newProduct);
     setScannerFeedback(`Encontrado: ${newProduct.name}. Confira as informações na embalagem.`, 'success');
-  } catch (_) {
-    setScannerFeedback('Não conseguimos consultar a base agora. Confira a conexão ou tente novamente.', 'error');
+    return newProduct;
+  } catch (error) {
+    console.warn('Erro na consulta à Open Food Facts:', error);
+    setScannerFeedback(error.name === 'AbortError'
+      ? 'A consulta demorou demais. Tente novamente; o catálogo continua acessível.'
+      : 'Não conseguimos consultar a base agora. Confira a conexão ou tente novamente.', 'error');
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -984,7 +1255,14 @@ localProducts.forEach(product => {
   }
 });
 
-state.products = cloudProducts;
+state.products = mergedProducts.map(p => {
+  const local = localProducts.find(item => item.code === p.code);
+  // Evita substituir dados locais mais completos por um cadastro antigo da nuvem.
+  if (local && local.code === p.code &&
+      (Array.isArray(local.allergens) || Array.isArray(local.traces)) &&
+      !Array.isArray(p.allergens) && !Array.isArray(p.traces)) return local;
+  return p;
+});
 
 renderProductsTable();
 updateCompareDropdowns();
@@ -1069,7 +1347,7 @@ function renderProductsTable() {
     tbody.innerHTML = '<tr><td colspan="6" class="muted text-center p-6">Nenhum produto encontrado. Escaneie um código ou cadastre um rótulo.</td></tr>';
     return;
   }
-  tbody.innerHTML = products.map(p => `
+  tbody.innerHTML = products.slice(0, 80).map(p => `
     <tr>
       <td><strong>${escapeHtml(p.name)}</strong><span class="block muted text-xs mt-1">${escapeHtml(p.brand)}</span></td>
       <td class="font-mono text-xs">${escapeHtml(p.code)}</td>
@@ -1117,163 +1395,154 @@ function calculateIACScore(product) {
 
 
 function getAllergenAlerts(product) {
-  const profiles = state.activeProfiles?.length
-    ? state.activeProfiles
-    : ['geral'];
-
+  const selected = state.activeProfiles?.length ? state.activeProfiles : ['geral'];
   const restrictions = {
-    alergia_leite: {
-      tags: ['en:milk'],
-      label: 'Alergia à proteína do leite'
-    },
-    alergia_ovo: {
-      tags: ['en:eggs'],
-      label: 'Alergia a ovo'
-    },
-    alergia_amendoim: {
-      tags: ['en:peanuts'],
-      label: 'Alergia a amendoim'
-    },
-    celiaca: {
-      tags: ['en:gluten'],
-      label: 'Doença celíaca'
-    }
+    alergia_leite: { label: 'Alergia à proteína do leite', tags: ['en:milk'] },
+    alergia_ovo: { label: 'Alergia ao ovo', tags: ['en:eggs'] },
+    alergia_amendoim: { label: 'Alergia ao amendoim', tags: ['en:peanuts'] },
+    celiaca: { label: 'Doença celíaca', tags: ['en:gluten'] },
+    lactose: { label: 'Intolerância à lactose', tags: [] }
   };
-
-  const allergens = Array.isArray(product.allergens)
-    ? product.allergens
-    : [];
-
-  const traces = Array.isArray(product.traces)
-    ? product.traces
-    : [];
-
+  const allergens = Array.isArray(product.allergens) ? product.allergens.map(x => String(x).toLowerCase()) : [];
+  const traces = Array.isArray(product.traces) ? product.traces.map(x => String(x).toLowerCase()) : [];
+  const allergensText = String(product.allergensText || '').toLocaleLowerCase('pt-BR');
+  const tracesText = String(product.tracesText || '').toLocaleLowerCase('pt-BR');
+  const ingredients = String(product.ingredients || '').toLocaleLowerCase('pt-BR');
+  const labels = String(product.labels || '').toLocaleLowerCase('pt-BR');
+  const labelTags = Array.isArray(product.labelsTags) ? product.labelsTags : [];
+  const isUseful = value => value && !/^(não disponível|não informado|não informada|ingredientes ilustrativos)/i.test(value.trim());
+  const containsWords = (text, regex) => isUseful(text) && regex.test(text);
   const alerts = [];
 
-  for (const profileKey of profiles) {
-    const restriction = restrictions[profileKey];
-    if (!restriction) continue;
+  for (const key of selected) {
+    const item = restrictions[key];
+    if (!item) continue;
+    let confirmed = item.tags.some(tag => allergens.includes(tag));
+    let possible = item.tags.some(tag => traces.includes(tag));
+    let evidence = confirmed ? 'Alérgeno registrado no cadastro Open Food Facts.' : '';
 
-    const confirmed = restriction.tags.some(tag =>
-      allergens.includes(tag)
-    );
+    // Só interpreta declarações explícitas nos campos disponíveis; não assume ausência de alérgenos.
+    const patterns = {
+      alergia_leite: /\b(leite|milk|case[ií]na|soro de leite|whey|lactalbumina)\b/i,
+      alergia_ovo: /\b(ovos?|eggs?|albumina de ovo)\b/i,
+      alergia_amendoim: /\b(amendoim|peanuts?|arachis)\b/i,
+      celiaca: /\b(gl[uú]ten|gluten)\b/i,
+      lactose: /\blactose\b/i
+    };
+    const reg = patterns[key];
+    if (!confirmed && key !== 'lactose' && containsWords(allergensText, reg)) {
+      confirmed = true;
+      evidence = 'Alérgeno declarado no cadastro do produto.';
+    }
+    if (!possible && containsWords(tracesText, reg)) possible = true;
 
-    const possible = restriction.tags.some(tag =>
-      traces.includes(tag)
-    );
+    // A lista de ingredientes ajuda a detectar presença positiva de leite, ovo ou amendoim.
+    // Não a usamos para declarar ausência, nem para inferir glúten a partir de cereais.
+    if (!confirmed && ['alergia_leite', 'alergia_ovo', 'alergia_amendoim'].includes(key) &&
+        containsWords(ingredients, reg) && !/sem (leite|ovo|amendoim)/i.test(ingredients)) {
+      confirmed = true;
+      evidence = 'Ingrediente identificado no texto do cadastro. Confirme no rótulo.';
+    }
+    if (key === 'celiaca') {
+      // Para doença celíaca, prioriza a declaração expressa CONTÉM GLÚTEN e os tags.
+      if (!confirmed && /\bcont[eé]m gl[uú]ten\b/i.test(labels)) {
+        confirmed = true;
+        evidence = 'Declaração CONTÉM GLÚTEN no cadastro.';
+      }
+      if (!confirmed && /\bgl[uú]ten\b/i.test(ingredients) &&
+          !/\b(n[aã]o cont[eé]m|sem) gl[uú]ten\b/i.test(ingredients)) {
+        confirmed = true;
+        evidence = 'Menção a glúten nos ingredientes do cadastro. Confirme no rótulo.';
+      }
+    }
+    if (key === 'lactose') {
+      // Leite não comprova a presença de lactose: há leite sem lactose.
+      confirmed = /\bcont[eé]m lactose\b/i.test(labels) ||
+        (containsWords(ingredients, /\blactose\b/i) && !/sem lactose|zero lactose/i.test(ingredients));
+      evidence = confirmed ? 'Lactose declarada no texto disponível.' : '';
+      possible = !confirmed && (allergens.includes('en:milk') ||
+        /\b(leite|milk)\b/i.test(ingredients) && isUseful(ingredients)) &&
+        !/\b(sem|zero) lactose\b/i.test(labels + ' ' + ingredients);
+    }
 
     if (confirmed) {
       alerts.push({
-        type: 'danger',
-        title: `ALERTA — ${restriction.label}`,
-        message: 'O cadastro identifica um alérgeno incompatível com o perfil selecionado.',
-        recommendation: 'Não é recomendado consumir este produto devido à restrição selecionada.'
+        type: 'danger', title: `${item.label} — incompatibilidade identificada`,
+        message: evidence || 'Ingrediente incompatível identificado nos dados do produto.',
+        recommendation: 'Não é recomendado consumir este produto com a restrição selecionada. Confira o rótulo antes de qualquer decisão.'
       });
     } else if (possible) {
       alerts.push({
-        type: 'warning',
-        title: `ATENÇÃO — ${restriction.label}`,
-        message: 'O cadastro informa que o produto pode conter traços do alérgeno.',
-        recommendation: 'Evite consumir até confirmar as informações de segurança no rótulo.'
+        type: 'warning', title: `${item.label} — atenção`,
+        message: key === 'lactose' ? 'O cadastro menciona leite, mas não confirma o teor de lactose.' :
+          'O cadastro informa possível presença ou traços desse alérgeno.',
+        recommendation: 'Não considere o produto seguro sem conferir a embalagem e, se necessário, o fabricante.'
       });
     } else {
       alerts.push({
-        type: 'unknown',
-        title: `NÃO VERIFICADO — ${restriction.label}`,
-        message: 'Não encontramos dados suficientes para confirmar se o produto é compatível com este perfil.',
-        recommendation: 'Confira o rótulo e as informações do fabricante antes de consumir.'
+        type: 'unknown', title: `${item.label} — não verificado`,
+        message: 'Este cadastro não possui evidência suficiente para confirmar presença nem ausência da substância relevante.',
+        recommendation: 'Confira a declaração de alergênicos e a lista de ingredientes no rótulo. Dados ausentes não significam que o produto seja seguro.'
       });
     }
   }
-
   return alerts;
 }
 
 function renderComparisonTable() {
   const container = document.getElementById('comparison-results');
+  if (!container) return;
   const code1 = document.getElementById('select-prod-1')?.value;
   const code2 = document.getElementById('select-prod-2')?.value;
   const products = [state.products.find(p => p.code === code1), state.products.find(p => p.code === code2)];
+  const aiArea = document.getElementById('comparison-ai-area');
+  const aiOutput = document.getElementById('comparison-ai-output');
+  if (aiArea) aiArea.classList.toggle('hidden', !products[0] || !products[1]);
+  const selectionKey = `${code1 || ''}|${code2 || ''}`;
+  if (aiArea?.dataset.selection !== selectionKey) {
+    aiArea.dataset.selection = selectionKey;
+    if (aiOutput) { aiOutput.textContent = ''; aiOutput.classList.add('hidden'); }
+  }
   if (!products.some(Boolean)) {
     container.innerHTML = '<p class="muted text-sm text-center py-8">Selecione pelo menos um produto para começar.</p>';
     return;
   }
-
   const fields = [
-    ['Energia', 'energy', 'kcal'],
-    ['Carboidratos', 'carbs', 'g'],
-    ['Açúcares', 'sugars', 'g'],
-    ['Proteínas', 'proteins', 'g'],
-    ['Gorduras', 'fats', 'g'],
-    ['Fibras', 'fiber', 'g'],
-    ['Sódio', 'sodium', 'mg']
+    ['Energia', 'energy', 'kcal'], ['Carboidratos', 'carbs', 'g'],
+    ['Açúcares', 'sugars', 'g'], ['Proteínas', 'proteins', 'g'],
+    ['Gorduras', 'fats', 'g'], ['Fibras', 'fiber', 'g'], ['Sódio', 'sodium', 'mg']
   ];
-
+  const selectedProfiles = state.activeProfiles?.length ? state.activeProfiles : ['geral'];
   container.innerHTML = `<div class="grid md:grid-cols-2 gap-4">${products.map(product => {
     if (!product) return '<div class="soft p-5 text-center muted">Selecione o outro produto para comparar.</div>';
     const score = calculateIACScore(product);
     const scoreText = score === null ? 'Dados insuficientes' : `${score}/100`;
-    const allergenAlerts = getAllergenAlerts(product);
-    console.log('TESTE ALERGIAS:', {
-  perfis: state.activeProfiles,
-  produto: product.name,
-  allergens: product.allergens,
-  traces: product.traces,
-  alertas: allergenAlerts
-});
-
-
-const allergenAlertsHTML = allergenAlerts.map(alert => {
-  const isDanger = alert.type === 'danger';
-  const isWarning = alert.type === 'warning';
-
-  const background = isDanger ? '#fff1f2'
-    : isWarning ? '#fff7ed'
-    : '#f3f4f6';
-
-  const color = isDanger ? '#b91c1c'
-    : isWarning ? '#9a3412'
-    : '#374151';
-
-  const border = isDanger ? '#fca5a5'
-    : isWarning ? '#fdba74'
-    : '#d1d5db';
-
-  return `
-    <div class="rounded-xl p-4 mt-3"
-         role="status"
-         style="background:${background};color:${color};border:2px solid ${border}">
-      <p class="font-black text-sm">
-        ${escapeHtml(alert.title)}
-      </p>
-
+    const alerts = getAllergenAlerts(product);
+    const hasDanger = alerts.some(alert => alert.type === 'danger');
+    const alertHTML = alerts.map(alert => `<div class="food-alert food-alert-${alert.type}" role="status">
+      <p class="font-black text-sm">${escapeHtml(alert.title)}</p>
       <p class="text-sm mt-2">${escapeHtml(alert.message)}</p>
-
-      <p class="font-bold text-sm mt-3">
-        ${escapeHtml(alert.recommendation)}
-      </p>
-    </div>
-  `;
-}).join('');
-
-    return `<article class="soft p-4">
-      <h3 class="font-black text-lg">${escapeHtml(product.name)}</h3>
-      <p class="muted text-sm mt-1">${escapeHtml(product.brand)}</p>
-      <p class="muted text-xs mt-1">Fonte: ${escapeHtml(product.source || 'Não informada')}</p>
-      <div class="surface text-center p-4 mt-4"><p class="muted text-xs uppercase tracking-wide">IAC simulado</p><p class="text-2xl font-black mt-1">${scoreText}</p><p class="muted text-xs mt-1">Fórmula didática; não é índice oficial.</p></div>
-      ${allergenAlertsHTML}
+      <p class="font-bold text-sm mt-2">${escapeHtml(alert.recommendation)}</p>
+    </div>`).join('');
+    const refreshButton = String(product.source || '').includes('Open Food Facts') && /^\d{8,14}$/.test(String(product.code || ''))
+      ? `<button type="button" class="refresh-label-data" data-refresh-barcode="${escapeHtml(product.code)}">Atualizar informações deste produto</button>` : '';
+    return `<article class="soft comparison-product p-4${hasDanger ? ' comparison-incompatible' : ''}">
+      <div class="comparison-product-header"><div><h3 class="font-black text-lg">${escapeHtml(product.name)}</h3>
+      <p class="muted text-sm mt-1">${escapeHtml(product.brand)}</p><p class="muted text-xs mt-1">Fonte: ${escapeHtml(product.source || 'Não informada')}</p></div>
+      ${hasDanger ? '<span class="comparison-status-danger">Incompatível com perfil</span>' : ''}</div>
+      <div class="surface score-box text-center p-4 mt-4"><p class="muted text-xs uppercase tracking-wide">IAC nutricional simulado</p><p class="text-2xl font-black mt-1">${scoreText}</p><p class="muted text-xs mt-1">Não avalia alergias nem segurança de consumo.</p></div>
+      ${alertHTML}
+      ${refreshButton}
       <div class="mt-4 space-y-0">${fields.map(([label,key,unit]) => {
-        const selectedProfiles = state.activeProfiles || [state.activeProfile];
-
-const highlight =
-  (selectedProfiles.includes('hipertensao') && key === 'sodium') ||
-  (selectedProfiles.includes('diabetes') && ['carbs', 'sugars'].includes(key)) ||
-  (selectedProfiles.includes('intestinal') && key === 'fiber') ||
-  (selectedProfiles.includes('atleta') && ['energy', 'carbs', 'proteins'].includes(key)) ||
-  (selectedProfiles.includes('colesterol') && key === 'fats') ||
-  (selectedProfiles.includes('obesidade') && ['energy', 'sugars', 'fiber'].includes(key)) ||
-  (selectedProfiles.includes('renal') && key === 'sodium');
-        return `<div class="flex justify-between gap-3 py-2 border-b" style="border-color:var(--border);${highlight ? 'font-weight:800;color:var(--green)' : ''}"><span>${label}</span><span class="text-right">${displayNumber(product.per100g[key], unit)}</span></div>`;
+        const highlighted =
+          (selectedProfiles.includes('hipertensao') && key === 'sodium') ||
+          (selectedProfiles.includes('diabetes') && ['carbs', 'sugars'].includes(key)) ||
+          (selectedProfiles.includes('intestinal') && key === 'fiber') ||
+          (selectedProfiles.includes('atleta') && ['energy', 'carbs', 'proteins'].includes(key)) ||
+          (selectedProfiles.includes('colesterol') && key === 'fats') ||
+          (selectedProfiles.includes('obesidade') && ['energy', 'sugars', 'fiber'].includes(key)) ||
+          (selectedProfiles.includes('renal') && key === 'sodium');
+        return `<div class="flex justify-between gap-3 py-2 border-b" style="border-color:var(--border);${highlighted ? 'font-weight:800;color:var(--green)' : ''}"><span>${label}</span><span class="text-right">${displayNumber(product.per100g?.[key], unit)}</span></div>`;
       }).join('')}</div>
     </article>`;
   }).join('')}</div>`;
@@ -1284,8 +1553,9 @@ function displayNumber(value, unit = '') {
   return `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value)}${unit ? ` ${unit}` : ''}`;
 }
 
-function getEvidenceProducts() {
+function getEvidenceProducts(productCodes = null) {
   return state.products
+    .filter(p => !productCodes || productCodes.includes(p.code))
     .filter(p => !p.demo && !String(p.source || '').toLowerCase().includes('demonstração') && !String(p.source || '').toLowerCase().includes('exemplo local'))
     .slice(0, 18)
     .map(p => ({
@@ -1296,6 +1566,10 @@ function getEvidenceProducts() {
       date: String(p.queryDate || 'Data não informada'),
       portion: String(p.portion || 'Não disponível'),
       ingredients: String(p.ingredients || 'Não disponível'),
+      allergens: Array.isArray(p.allergens) ? p.allergens : [],
+      traces: Array.isArray(p.traces) ? p.traces : [],
+      allergensText: String(p.allergensText || ''),
+      tracesText: String(p.tracesText || ''),
       nutrientsPer100g: {
         energyKcal: typeof p.per100g.energy === 'number' ? p.per100g.energy : null,
         carbohydratesG: typeof p.per100g.carbs === 'number' ? p.per100g.carbs : null,
@@ -1403,19 +1677,30 @@ function formatNutriciaAnswer(text) {
     .trim();
 }
 
-async function askNutricia(question) {
-  const products = getEvidenceProducts();
+async function askNutricia(question, productCodes = null) {
+  const products = getEvidenceProducts(productCodes);
   if (NUTRICIA_AI_ENDPOINT) {
-    const response = await fetch(NUTRICIA_AI_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-  question,
-  profile: PROFILE_MAP[state.activeProfile],
-  profiles: state.activeProfiles.map(key => PROFILE_MAP[key]).filter(Boolean),
-  products
-})
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 18000);
+    let response;
+    try {
+      response = await fetch(NUTRICIA_AI_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          question,
+          profile: PROFILE_MAP[state.activeProfile],
+          profiles: state.activeProfiles.map(key => PROFILE_MAP[key]).filter(Boolean),
+          products
+        })
+      });
+    } catch (error) {
+      if (error.name === 'AbortError') throw new Error('A resposta da IA demorou demais. Tente uma pergunta mais curta.');
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
    
 if (!response.ok) {
   if (response.status === 429) {
